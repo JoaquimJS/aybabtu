@@ -1,0 +1,59 @@
+/*------------------------------------------------------------------------------
+
+ * What....... : Script de lancement de toutes les plausis sur tous les dossiers
+                 d'une année donnée
+ * Date....... : 06.2013
+ * Rem........ : 
+  
+------------------------------------------------------------------------------*/
+
+SET SERVEROUPUT ON ;
+
+DECLARE
+
+
+   co_ep_jahr   CONSTANT number := 2012 ;
+
+   CURSOR c1 IS 
+        SELECT    DISTINCT(SOZ_TRAEGER_DATENIMPORT_ID)
+                , STANDORT_ID 
+          FROM    SH_DOSSIER 
+         WHERE    JAHR = co_ep_jahr ;
+   
+   l_standort   sh_dossier.standort_id%TYPE;
+   l_dat_id     sh_dossier.soz_traeger_datenimport_id%TYPE;
+
+BEGIN
+
+dbms_output.enable(100000);
+
+  OPEN c1;
+  LOOP
+    FETCH c1 INTO l_dat_id, l_standort;
+    IF c1%FOUND THEN 
+
+            DECLARE
+              p_datenimport_id       number ;
+              p_standort_id          number ;
+              p_debug_option         number;
+
+            BEGIN
+            
+              p_datenimport_id  := l_dat_id ;
+              p_standort_id     := l_standort;
+              p_debug_option    := 1;
+              
+              do_plausi.sp_plausis_ex(  p_datenimport_id
+                                      , p_standort_id
+                                      , 1
+                                      , p_debug_option) ;
+
+            EXCEPTION WHEN OTHERS THEN 
+             RAISE_APPLICATION_ERROR(-20001, 'Une erreur non définie est survenue : '||sqlerrm);
+            END;
+
+    ELSE 
+      EXIT;
+    END IF;
+  END LOOP;
+END;
