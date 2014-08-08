@@ -1,0 +1,358 @@
+create or replace
+PACKAGE DBO IS 
+
+   FUNCTION FC_TEST_VERSICHERTENNUMMER (p_vers_nummer IN VARCHAR2) RETURN INTEGER;
+   FUNCTION FC_IS_ALBV_KANTON(p_sozialleistungstraeger IN VARCHAR2) RETURN INTEGER;
+   FUNCTION FC_IS_6_MT_BETWEEN(pFromDate IN DATE, pToDate IN DATE) RETURN INTEGER;
+   FUNCTION FC_BFS_CODE(p_plz_id VARCHAR2) RETURN INTEGER;
+   FUNCTION FC_ISNUMERIC(param VARCHAR2) RETURN BOOLEAN;
+   FUNCTION FC_TMJ(tt INTEGER, mm INTEGER, jjjj INTEGER) RETURN DATE;
+   FUNCTION FC_LEFT(str VARCHAR2, len INTEGER) RETURN VARCHAR2;
+   FUNCTION FC_ISNULL_DATE(d1 DATE, d2 DATE) RETURN DATE;
+   FUNCTION FC_ISNULL_INT(i1 INTEGER, i2 INTEGER) RETURN INTEGER;
+   FUNCTION FC_YEAR(d DATE) RETURN INTEGER;
+   FUNCTION FC_MONTH(d DATE) RETURN INTEGER;
+   FUNCTION FC_TODAY RETURN DATE;
+   FUNCTION FC_TO_DATE(str VARCHAR2) RETURN DATE;
+   FUNCTION FC_ERHEBUNGSJAHR(jahr INTEGER, current_datetime DATE ) RETURN INTEGER;
+   
+   -- Ajout BFS, juillet 2014
+   FUNCTION FC_CONCAT(str1 VARCHAR2, str2 VARCHAR2)  RETURN VARCHAR2 ;
+   FUNCTION FC_SUBSTR(str VARCHAR2, init INTEGER, len INTEGER)  RETURN VARCHAR2 ;
+   FUNCTION FC_LENGTH(str VARCHAR2)  RETURN INTEGER ;
+   FUNCTION FC_TO_INT(str VARCHAR2)  RETURN INTEGER ;
+
+END DBO;
+
+
+-------------------------
+
+
+
+create or replace
+PACKAGE BODY DBO IS
+
+FUNCTION FC_TEST_VERSICHERTENNUMMER (p_vers_nummer IN VARCHAR2)
+RETURN INTEGER
+IS
+
+sVersichertennummer VARCHAR2(32);
+iResult INTEGER;
+iPos INTEGER;
+iLen INTEGER;
+iProduct INTEGER;
+iEvenSum INTEGER;
+iOddSum INTEGER;
+iSum INTEGER;
+iDiff INTEGER;
+
+BEGIN
+iResult := 0;
+
+sVersichertennummer := p_vers_nummer;
+sVersichertennummer := REPLACE(sVersichertennummer,'.','');
+
+iLen := LENGTH(sVersichertennummer);
+
+IF iLen = 13 THEN
+BEGIN
+  IF(SUBSTR(sVersichertennummer, 1, 3) <> '756')
+  THEN
+  BEGIN
+      iResult := 0;
+      RETURN iResult;
+  END;
+  END IF;
+
+   -- STEP 1
+  iPos := 2;
+  iEvenSum := 0;
+
+  WHILE iPos < iLen
+  LOOP
+   iEvenSum := iEvenSum + TO_NUMBER(SUBSTR(sVersichertennummer, iPos, 1));
+   iPos := iPos + 2;
+  END LOOP;
+
+  -- STEP 2
+  iProduct := iEvenSum * 3;
+
+  -- STEP 3
+  iPos := 1;
+  iOddSum := 0;
+
+  WHILE iPos < iLen
+  LOOP
+   iOddSum := iOddSum + TO_NUMBER(SUBSTR(sVersichertennummer, iPos, 1));
+   iPos := iPos + 2;
+  END LOOP;
+
+  -- STEP 4
+  iSum := iProduct + iOddSum;
+
+  -- STEP 5
+  iDiff := (10 - iSum MOD 10) MOD 10;
+
+   -- STEP 6
+  IF (TO_NUMBER(SUBSTR(sVersichertennummer, 13, 1)) = iDiff) THEN
+    iResult := 1;
+  END IF;
+END;
+ELSE
+   iResult := 0;
+END IF;
+
+RETURN iResult;
+
+END;
+
+/* --------------------------------------------------------------------------
+   ISOS 6.4
+   ********
+   Version 1.00   15.04.2013   Oliver Heiler, Concevis AG
+   Grund:         Harmonisierung Plausex und ISOS Funktion wird für die Plausibilisierung benötigt
+
+* -------------------------------------------------------------------------- */
+
+FUNCTION FC_IS_ALBV_KANTON(p_sozialleistungstraeger IN VARCHAR2) RETURN INTEGER
+IS
+    iKanton INTEGER;
+    bAlbvKanton INTEGER;
+    sSTlong VARCHAR2(12);
+
+BEGIN
+    sSTlong := '000000' || p_sozialleistungstraeger;
+    iKanton := TO_NUMBER(SUBSTR(SUBSTR(sSTlong, -6,6),1,2));
+
+    IF iKanton IN (9,10,22,23,24,25,26) THEN
+         bAlbvKanton := 1;
+    ELSE
+        bAlbvKanton := 0;
+    END IF;
+
+    RETURN bAlbvKanton;
+END;
+
+/* --------------------------------------------------------------------------
+   ISOS 6.4
+   ********
+   Version 1.00   15.04.2013   Oliver Heiler, Concevis AG
+   Grund:         Harmonisierung Plausex und ISOS Funktion wird für die Plausibilisierung benötigt
+
+* -------------------------------------------------------------------------- */
+
+FUNCTION FC_IS_6_MT_BETWEEN(pFromDate IN DATE, pToDate IN DATE) RETURN INTEGER
+IS
+    iResult INTEGER;
+    fm INTEGER;
+    tm INTEGER;
+    fy INTEGER;
+    ty INTEGER;
+    diffMt INTEGER;
+BEGIN
+    iResult := 0;
+
+    IF  pFromDate IS NOT NULL
+        AND pToDate IS NOT NULL
+        AND pFromDate < TO_DATE('01.01.9998', 'DD.MM.YYYY') AND pToDate < TO_DATE('01.01.9998', 'DD.MM.YYYY') THEN
+    BEGIN
+        fy := EXTRACT ( YEAR FROM pFromDate);
+        ty := EXTRACT ( YEAR FROM pToDate);
+        fm := EXTRACT ( MONTH FROM pFromDate);
+        tm := EXTRACT ( MONTH FROM pToDate);
+        diffMt := (12*ty + tm) - (12*fy + fm);
+
+        IF diffMt = 6 THEN
+            iResult := 0;
+        ELSE
+            iResult := 1;
+        END IF;
+    END;
+    END IF;
+
+    RETURN iResult;
+END;
+
+/* --------------------------------------------------------------------------
+   ISOS 6.4
+   ********
+   Version 1.00   15.04.2013   Oliver Heiler, Concevis AG
+   Grund:         Harmonisierung Plausex und ISOS Funktion wird für die Plausibilisierung benötigt
+
+* -------------------------------------------------------------------------- */
+FUNCTION FC_BFS_CODE(p_plz_id VARCHAR2) RETURN INTEGER
+IS
+    bfs_code INTEGER;
+    l_count INTEGER;
+
+BEGIN
+    l_count := 0;
+
+    IF  LENGTH(p_plz_id) = 8 THEN
+        BEGIN
+            SELECT COUNT(1) INTO l_count FROM v_plz_neu WHERE  plz_id = p_plz_id;
+            IF l_count > 0 THEN
+                SELECT gemeinde_id INTO bfs_code FROM v_plz_neu WHERE plz_id = p_plz_id;
+            END IF;
+        END;
+    ELSE
+        bfs_code := CASE WHEN FC_ISNUMERIC(p_plz_id) THEN TO_NUMBER(p_plz_id) ELSE NULL END;
+    END IF;
+
+    RETURN bfs_code;
+END;
+
+/* --------------------------------------------------------------------------
+   ISOS 6.4
+   ********
+   Version 1.00   15.04.2013   Oliver Heiler, Concevis AG
+   Grund:         Harmonisierung Plausex und ISOS Funktion wird für die Plausibilisierung benötigt
+
+* -------------------------------------------------------------------------- */
+
+FUNCTION FC_ISNUMERIC (param VARCHAR2) RETURN BOOLEAN
+IS
+   dummy number;
+BEGIN
+   dummy:=to_number(param);
+   RETURN true;
+EXCEPTION
+   WHEN OTHERS THEN
+       RETURN false;
+END;
+
+FUNCTION FC_TMJ(tt INTEGER, mm INTEGER, jjjj INTEGER)  RETURN DATE
+IS
+l_date DATE;
+
+BEGIN
+  
+  l_date := TO_DATE(tt || '.' || mm || '.' || jjjj, 'DD.MM.YYYY');
+  
+  return l_date;
+  
+END;
+
+FUNCTION FC_TO_DATE(str VARCHAR2) RETURN DATE
+IS
+BEGIN
+
+  return TO_DATE(str, 'DD.MM.YYYY');
+  
+END;
+
+FUNCTION FC_LEFT(str VARCHAR2, len INTEGER)  RETURN VARCHAR2
+IS
+BEGIN
+  
+  IF length(str) = 0 THEN
+    return LPAD(' ', len-1);
+  ELSE
+   return substr(str,1,len);
+  END IF;
+  
+  --return l_str;
+  
+END;
+
+FUNCTION FC_YEAR(d DATE) RETURN INTEGER
+IS
+BEGIN
+
+  return Extract(year from d);
+  
+END;
+
+FUNCTION FC_MONTH(d DATE) RETURN INTEGER
+IS
+BEGIN
+
+  return Extract(month from d);
+  
+END;
+
+FUNCTION FC_TODAY RETURN DATE
+IS
+BEGIN
+
+  return SYSDATE;
+END;
+
+FUNCTION FC_ISNULL_DATE(d1 DATE, d2 DATE) RETURN DATE
+IS
+BEGIN
+  
+  return NVL(d1,d2);
+  
+END;
+
+FUNCTION FC_ISNULL_int(i1 INTEGER, i2 INTEGER) RETURN INTEGER
+IS
+BEGIN
+  
+  return NVL(i1,i2);
+  
+END;
+
+ FUNCTION FC_ERHEBUNGSJAHR(jahr INTEGER, current_datetime DATE ) RETURN INTEGER
+ IS
+  l_erhebungsjahr INTEGER;
+  BEGIN
+  
+  IF jahr >= 2000 THEN
+    l_erhebungsjahr :=  jahr;
+  ELSE
+    l_erhebungsjahr :=  EXTRACT( YEAR from current_datetime);
+  END IF;
+  
+  return l_erhebungsjahr;
+  
+ END;
+ 
+ 
+ /*--------------------------------------------------------------------------*/
+ -- Fonctions ajoutées par BFS juillet 2014
+ -- Ces fonctions doivent également être ajoutées à PlausEx/SQL Server
+ /*--------------------------------------------------------------------------*/
+ 
+FUNCTION FC_CONCAT(str1 VARCHAR2, str2 VARCHAR2)  RETURN VARCHAR2
+IS
+BEGIN  
+  return(str1 || str2) ;  
+  
+END;
+ 
+ 
+FUNCTION FC_SUBSTR(str VARCHAR2, init INTEGER, len INTEGER)  RETURN VARCHAR2
+IS
+BEGIN
+  return substr(str, init, len) ;
+
+END; 
+
+
+
+FUNCTION FC_LENGTH(str VARCHAR2)  RETURN INTEGER
+IS
+BEGIN
+  return length(str) ;
+
+END; 
+
+
+
+FUNCTION FC_TO_INT(str VARCHAR2)  RETURN INTEGER
+IS
+BEGIN
+  IF(LENGTH(REGEXP_REPLACE (STR, '-?[0-9]*', ''))>0) THEN
+    RETURN -1 ;
+  ELSE 
+    RETURN TO_NUMBER(STR) ;
+  END IF;
+END; 
+
+ 
+ 
+ 
+ 
+END DBO;
