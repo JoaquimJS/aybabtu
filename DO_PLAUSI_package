@@ -1,0 +1,62 @@
+create or replace
+PACKAGE        "DO_PLAUSI" IS
+--
+-- To modify this template, edit file PKGSPEC.TXT in TEMPLATE
+-- directory of SQL Navigator
+--
+-- Purpose: Briefly explain the functionality of the package
+--
+-- MODIFICATION HISTORY
+-- Person      Date    Comments
+-- ---------   ------  ------------------------------------------
+-- Enter package declarations as shown below
+--  
+-- ISOS 6.4 Neues Plausikonzept ---------------------------------------------------------   
+--
+-- O.Heiler       14.05.13       Neue Funktion SP_DOSSIERS_VERMISST hinzugefügt.
+-- O.Heiler       14.05.13       Neue Funktion SP_FLUSTAT_COPY_CHECK hinzugefügt.
+-- O.Heiler       23.08.13       Neuer Parameter p_data_context für SP_PLAUSI_EX
+-- O.Heiler       09.09.13       Anpassung SP_DOSSIERS_VERMISST kopierte Flustat-Dossiers ausschliessen => sh_dossier.sh_flustat_id is null
+-----------------------------------------------------------------------------------------
+
+
+   FUNCTION F_ATTR_INTEGER_IS_UNKNOWN ( attr IN Integer) return INTEGER;
+   FUNCTION F_ATTR_VARCHAR_IS_UNKNOWN ( attr IN Varchar2) return INTEGER;
+   FUNCTION F_ATTR_DATE_IS_UNKNOWN ( attr IN Date) return INTEGER;
+   FUNCTION F_ATTR_INTEGER_IS_MISSING ( attr IN Integer) return INTEGER;
+   FUNCTION F_ATTR_VARCHAR_IS_MISSING ( attr IN Varchar2) return INTEGER;
+   FUNCTION F_ATTR_DATE_IS_MISSING ( attr IN Date) return INTEGER;
+
+   PROCEDURE SP_PLAUSIS_EX ( p_datenimport_id INTEGER, p_standort_id INTEGER, p_data_context INTEGER, p_debug_option INTEGER);
+
+   PROCEDURE SET_ROH_SH_DOSSIER(dossier_id IN INTEGER);
+  
+   PROCEDURE SP_DOSSIERS_VERMISST(p_selektion_id IN INTEGER, p_result OUT INTEGER, p_datenimport_id IN INTEGER, p_standort_id IN INTEGER, p_data_context IN INTEGER);
+   PROCEDURE SP_FLUSTAT_COPY_CHECK(p_selektion_id IN INTEGER, p_result OUT INTEGER, p_datenimport_id IN INTEGER, p_standort_id IN INTEGER, p_data_context IN INTEGER);
+   PROCEDURE SP_DUMMY(p_selektion_id IN INTEGER, p_result OUT INTEGER, p_datenimport_id IN INTEGER, p_standort_id IN INTEGER, p_data_context IN INTEGER);
+   
+   PROCEDURE SP_IMPUTATION_EX ( p_datenimport_id INTEGER, p_standort_id INTEGER, p_debug_option INTEGER);
+   
+   PROCEDURE DBG_TEST_IMPUTATION ( p_plausimeldung_id INTEGER, p_sql_statement VARCHAR2);
+   
+    --Gestion des règles, en lien avec l'historisation
+   PROCEDURE PLAUSIMELDUNG_DUPLIZIEREN (p_plausimeldung_id v_plausimeldung.plausimeldung_id%TYPE, p_user_id v_plausimeldung.anpassung_user_id%TYPE);
+   PROCEDURE PLAUSI_DUPLIZIEREN ( p_plausi_id v_plausi.plausi_id%TYPE);
+
+   PROCEDURE PLAUSIVERSION_DUPLIZIEREN (p_new_plausiversion_id  v_plausiversion.plausiversion_id%TYPE, p_old_plausiversion_id  v_plausiversion.plausiversion_id%TYPE);
+   PROCEDURE IMPUTATIONVERSION_DUPLIZIEREN (p_new_imputationversion_id  v_imputationversion.imputationversion_id%TYPE, p_old_imputationversion_id  v_imputationversion.imputationversion_id%TYPE);
+
+   new_version_id v_plausiversion.plausiversion_id%TYPE;
+   old_version_id v_plausiversion.plausiversion_id%TYPE; 
+   FUNCTION GET_OLD_VERSION  return v_plausiversion.plausiversion_id%TYPE;
+   FUNCTION GET_NEW_VERSION  return v_plausiversion.plausiversion_id%TYPE;
+   
+   
+--   PROCEDURE SP_PLAUSIS_EX_2 ( p_datenimport_id INTEGER, p_standort_id INTEGER, p_plausi_version_id INTEGER, p_data_context INTEGER, p_debug_option INTEGER);
+    
+--   PROCEDURE SP_IMPUTATION_EX_2 ( p_datenimport_id INTEGER, p_standort_id INTEGER, p_imputation_version_id INTEGER, p_debug_option INTEGER);
+
+
+
+      
+END; -- Package Specification DO_PLAUSI
