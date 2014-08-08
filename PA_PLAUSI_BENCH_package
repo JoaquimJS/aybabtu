@@ -1,0 +1,1072 @@
+create or replace
+PACKAGE PA_PLAUSI_BENCH IS 
+
+  /* TODO enter package declarations (types, exceptions, methods etc) here */ 
+ 
+ 
+
+  
+  PROCEDURE pr_insert_test (  
+                    mp_bench_id IN INTEGER
+                  , mp_plausi_id IN INTEGER 
+                  , mp_plausimeldung_id IN INTEGER
+                  , mp_group_hash IN VARCHAR2
+                  , mp_sql_stmt IN VARCHAR2
+                  , mp_count IN INTEGER
+                  , mp_error_mess IN VARCHAR2
+                  , mp_exec_time IN NUMBER
+                  , mp_standort_id IN INTEGER DEFAULT 0
+                  , mp_datenimport_id IN INTEGER DEFAULT 0
+                  , mp_jahr IN INTEGER DEFAULT 0
+                  , mp_param1 IN INTEGER DEFAULT 0
+                  , mp_param2 IN INTEGER DEFAULT 0
+                  , mp_param3 IN INTEGER DEFAULT 0
+                  ) ;
+                  
+
+  PROCEDURE pr_do_test (  
+                    mp_plausi_id IN INTEGER 
+                  , mp_jahr IN INTEGER DEFAULT 0                 
+                  , mp_standort_id IN INTEGER DEFAULT 0
+                  , mp_datenimport_id IN INTEGER DEFAULT 0
+                  , mp_technical_test IN INTEGER DEFAULT 0
+                 
+                 
+                  ) ;
+                  
+                  
+  
+  PROCEDURE pr_do_test_1_unit(mp_plausi_id INTEGER, mp_jahr INTEGER) ;
+                  
+                  
+                  
+ 
+  PROCEDURE pr_insert_units (
+                    mp_bench_id IN INTEGER
+                  , mp_plausi_id IN INTEGER 
+                  , mp_plausimeldung_id IN INTEGER
+                  , mp_group_hash IN VARCHAR2
+                  , mp_sql_stmt IN VARCHAR2
+                  ) ;
+ 
+ 
+ 
+  PROCEDURE PR_TECH_TEST (mp_plausi_id IN INTEGER DEFAULT 0);
+  
+
+ 
+
+END PA_PLAUSI_BENCH;
+
+
+---------------------------------------------
+
+create or replace
+PACKAGE BODY PA_PLAUSI_BENCH  as
+
+
+
+
+
+
+/*------------------------------------------------------------------------------
+
+Procédure d'insertion dans la table.
+A faire : 
+  - vérification de l'existance de la table
+  - 
+
+
+------------------------------------------------------------------------------*/
+
+  PROCEDURE pr_insert_test (
+                    mp_bench_id IN INTEGER
+                  , mp_plausi_id IN INTEGER 
+                  , mp_plausimeldung_id IN INTEGER
+                  , mp_group_hash IN VARCHAR2
+                  , mp_sql_stmt IN VARCHAR2
+                  , mp_count IN INTEGER
+                  , mp_error_mess IN VARCHAR2
+                  , mp_exec_time IN NUMBER
+                  , mp_standort_id IN INTEGER DEFAULT 0
+                  , mp_datenimport_id IN INTEGER DEFAULT 0
+                  , mp_jahr IN INTEGER DEFAULT 0
+                  , mp_param1 IN INTEGER DEFAULT 0
+                  , mp_param2 IN INTEGER DEFAULT 0
+                  , mp_param3 IN INTEGER DEFAULT 0
+                  
+                  )  IS
+
+                  
+    l_query       VARCHAR2(4000) ;    
+    l_err_mess    VARCHAR2(4000) ;
+  
+                  
+  BEGIN
+  
+    BEGIN
+
+      l_query := 'INSERT INTO z_plausi_bench VALUES (
+          
+            '||mp_bench_id||'
+          , '||mp_plausi_id||'
+          , '||mp_plausimeldung_id||'
+          , '||mp_group_hash||'
+          , '''||replace(mp_sql_stmt, '''', '''''')||'''
+          , '||mp_count||'
+          , '''||replace(mp_error_mess, '''', '´')||'''
+          , '''|| mp_exec_time||'''
+          , '''||to_date(sysdate, 'DD.MM.RRRR HH24:MI:SS')||'''
+          , '||mp_standort_id||'
+          , '||mp_datenimport_id||'
+          , '||mp_jahr||'
+          , '||NVL(mp_param1, 0)||'
+          , '||NVL(mp_param2, 0)||'
+          , '||NVL(mp_param3, 0)||'
+          )' ;
+
+--  , '''||replace(mp_sql_stmt, '''', '´')||'''
+
+          EXECUTE IMMEDIATE l_query ;
+
+      EXCEPTION WHEN OTHERS THEN
+          
+        l_err_mess := sqlerrm ;
+        INSERT INTO z_plausi_bench (id, plausi_id, plausimeldung_id, error_message) VALUES (mp_bench_id, mp_plausi_id, 0, l_err_mess) ;
+ 
+      END;
+ 
+  END pr_insert_test;
+
+
+
+/*------------------------------------------------------------------------------
+
+Procédure de réalisation d'un ou plusieurs test(s)
+A faire : 
+  - création ou non de la table z_multitest
+  - 
+
+
+------------------------------------------------------------------------------*/
+
+  PROCEDURE pr_do_test (  
+                    mp_plausi_id IN INTEGER 
+                  , mp_jahr IN INTEGER DEFAULT 0               
+                  , mp_standort_id IN INTEGER DEFAULT 0
+                  , mp_datenimport_id IN INTEGER DEFAULT 0
+                  , mp_technical_test IN INTEGER DEFAULT 0
+                 
+                  ) IS
+                  
+  
+    
+    TYPE tbl_chr IS TABLE OF VARCHAR2(4000) ;
+    TYPE tbl_int IS TABLE OF INTEGER ;
+ 
+    lc_param1             tbl_int ;
+    lc_param2             tbl_int ;
+    lc_param3             tbl_int ;
+    
+    lc_sql_from           tbl_chr ;
+    lc_sql_where          tbl_chr ;
+    lc_sql_and            tbl_chr ;
+    lc_leistungsfilter    tbl_chr ;
+    lc_plausimeldung_id   tbl_int ;
+    
+    lc_standort_id        tbl_int ;
+    lc_datenimport_id     tbl_int ;
+    lc_jahr               tbl_int ;
+    
+    
+    
+    p_query_struct    VARCHAR2(4000) ;
+    p_query_exec      VARCHAR2(4000) ;
+    
+    sql_from          z_multitest.p_from_bedingung%TYPE ;
+    sql_where         z_multitest.p_where_bedingung%TYPE ;
+    sql_and           z_multitest.p_and_bedingung%TYPE ;
+    leistungsfilter   z_multitest.p_leistungsfilter%TYPE ;
+    
+    param1            z_multitest.pm_param1%TYPE ;
+    param2            z_multitest.pm_param2%TYPE ;
+    param3            z_multitest.pm_param3%TYPE ;
+    
+    plausimeldung_id  INTEGER ;
+    
+    chrono          NUMBER(36,9) ;
+
+    l_count         INTEGER ;
+    l_flag_sup_0    INTEGER ;
+    l_query         VARCHAR2(4000) ;
+    l_query1        VARCHAR2(4000) ;
+    l_query2        VARCHAR2(4000) ;
+    l_hash          INTEGER := 0 ;
+    l_err_mess      VARCHAR2(4000) ;
+    l_err_code      INTEGER := 0 ;
+    
+    bench_id    INTEGER ;
+
+
+    BEGIN <<MAIN_BLOC>>
+
+    EXECUTE IMMEDIATE 'ALTER SESSION SET NLS_DATE_FORMAT = ''DD.MM.RRRR HH24:MI:SS'' ' ;
+    EXECUTE IMMEDIATE 'ALTER SESSION SET NLS_LANGUAGE = ''FRENCH'' ' ;
+
+       BEGIN <<BLOC_STRUCT_PLAUSI>>
+       /*-----------------------------------------------------------------------
+       L'ensemble du test se base sur la table Z_MULTITEST qui est une synthèse
+       des différentes tables liées aux plausis.
+       
+       Le code de création de la table est donné en commentaire en bas du script.
+       
+       Cette table se construit en déclinant les plausis selon les paramètres,
+       présents dans V_PLAUSIMELDUNG.
+       
+       On effectue donc une prmière boucle pour créer chaque plausi en fonction 
+       de chacun des paramètres. Attention, les paramètres ne sont pas forcément 
+       les membres de l'unité d'assistance ; en créant chaque plausi en fonction 
+       des paramètres on est donc certain de la tester de la bonne manière, i.e.
+       telle qu'elle sera effectivement appelée.
+       
+       -----------------------------------------------------------------------*/
+   
+
+          l_query1 := 'SELECT   p_from_bedingung
+                              , p_where_bedingung
+                              , p_and_bedingung
+                              , p_leistungsfilter
+                              , pm_param1
+                              , pm_param2
+                              , pm_param3
+                              , pm_plausimeldung_id 
+                            
+                            
+                        FROM    z_multitest 
+                       WHERE    p_plausi_id = '||mp_plausi_id||' AND pmb_sprache_id = 1' ;
+                       
+                     
+          EXECUTE IMMEDIATE l_query1 BULK COLLECT INTO lc_sql_from, lc_sql_where, lc_sql_and, lc_leistungsfilter, lc_param1, lc_param2, lc_param3, lc_plausimeldung_id ;
+        
+        EXCEPTION WHEN OTHERS THEN 
+          RAISE ;
+        
+        END;
+       
+        BEGIN <<BLOC_VARIABLES_POURCENT>>
+        
+        /*
+        On traite ici le cas des variables "%variable%".
+        
+        L'avantage de ce traitement est que l'on peut également paramétrer les 
+        plausis sur des STANDORT, DATENIMPORT et ANNEE-EP particuliers et selon
+        n'importe quelle combinaison.
+        
+        Autre avantage : en mettant un standort, une année ou un datenimport bidon
+        dans les paramètres de la procédure, on peut effectuer un test très rapide
+        de la structure des requêtes.
+        
+        N.b. : actuellement, les variables "%var%" ne sont pas utilisées exactement comme 
+               dans les procédures DO_PLAUSI etc. On se contente de les remplacer
+               par les valeurs se trouvant dans SH_DOSSIER. Il peut donc y avoir quelques
+               différences dans les totaux.
+               À voir/adapter. 
+        */
+   
+              l_query2 := 'SELECT   DISTINCT standort_id
+                                  , soz_traeger_datenimport_id
+                                  , jahr 
+                            FROM    sh_dossier 
+                            WHERE   standort_id IS NOT NULL
+                                    AND soz_traeger_datenimport_id IS NOT NULL';
+              
+               -- les trois conditions nous permettent de limiter et paramétrer
+               -- l'ensemble retourné par la requête et sur lequel il faudra boucler
+               IF (mp_standort_id <> 0) THEN 
+                  l_query2 := l_query2 ||' AND standort_id = '||mp_standort_id ; 
+               END IF;
+               
+               IF (mp_datenimport_id <> 0) THEN 
+                  l_query2 := l_query2 ||' AND soz_traeger_datenimport_id = '||mp_datenimport_id ; 
+               END IF;
+               
+               IF (mp_jahr <> 0) THEN 
+                  l_query2 := l_query2 ||' AND jahr = '||mp_jahr ; 
+               END IF;
+            
+            EXECUTE IMMEDIATE l_query2 BULK COLLECT INTO lc_standort_id, lc_datenimport_id, lc_jahr ;
+        
+        EXCEPTION WHEN OTHERS THEN 
+          RAISE ;
+        
+        
+        END ;
+        
+        
+        /* Pemière boucle à partir de la première requête construite ci-dessus */ 
+        
+        -- Hash pour identifier le lot 
+        EXECUTE IMMEDIATE 'SELECT ORA_HASH( to_char(sysdate, ''RRRR-MM-DD HH24:MI:SS'')) from dual' INTO l_hash;
+        
+        FOR i IN 1..lc_plausimeldung_id.COUNT
+        LOOP
+
+          p_query_struct := 'SELECT     p_from_bedingung, p_where_bedingung, p_leistungsfilter, pm_param1, pm_param2, pm_param3, pm_plausimeldung_id
+                               FROM     z_multitest 
+                              WHERE     pmb_sprache_id = 1
+                                        AND p_plausi_id = '||mp_plausi_id ;
+                                  
+          IF REGEXP_LIKE(lc_param1(i), '[0-9]{1,}') THEN 
+              p_query_struct :=  p_query_struct||' AND pm_param1 = '||lc_param1(i) ;  
+          END IF ; 
+          
+          IF REGEXP_LIKE(lc_param2(i), '[0-9]{1,}') THEN 
+              p_query_struct :=  p_query_struct||' AND pm_param2 = '||lc_param2(i) ;  
+          END IF ;                             
+          
+          IF REGEXP_LIKE(lc_param3(i), '[0-9]{1,}') THEN 
+              p_query_struct :=  p_query_struct||' AND pm_param3 = '||lc_param3(i) ;  
+          END IF ; 
+                   
+          BEGIN
+          
+            -- Flag d'existence d'au moins une unité : on va devoir faire en fonction
+            l_flag_sup_0 := 0 ;
+
+            -- Construction de la requête          
+            p_query_struct := 'SELECT COUNT(DISTINCT sh_dossier.sh_dossier_id) FROM '||lc_sql_from(i)||' WHERE '||lc_sql_where(i)||' '||lc_sql_and(i) ;
+            
+            -- Remplacement des paramètres
+            p_query_struct := replace (p_query_struct, ':param1', lc_param1(i)) ;
+            p_query_struct := replace (p_query_struct, ':param2', lc_param2(i)) ;
+            p_query_struct := replace (p_query_struct, ':param3', lc_param3(i)) ;
+
+            /* Deuxième boucle sur la deuxième requête construite au début */
+            
+            -- Si la requête n'est pas vide, fait tourner la boucle
+            IF (lc_datenimport_id.COUNT > 0 AND mp_technical_test <> 1) THEN
+            
+                FOR j IN 1..lc_datenimport_id.COUNT
+                LOOP
+                
+                    -- On remplace les variables "%var%
+                    p_query_exec := p_query_struct ;
+                    
+                    IF REGEXP_LIKE (p_query_exec, '(\%erhebungsjahr\%)') THEN
+                        p_query_exec := REPLACE (p_query_struct, '%erhebungsjahr%', lc_jahr(j)) ;
+                    ELSE
+                        p_query_exec := p_query_exec ||' AND sh_dossier.jahr = '||lc_jahr(j);
+                    END IF;
+                    
+                    IF REGEXP_LIKE (p_query_exec, '(\%standort_id\%)') THEN
+                        p_query_exec := REPLACE (p_query_struct, '%standort_id%', lc_standort_id(j)) ;
+                    ELSE
+                        p_query_exec := p_query_exec ||' AND sh_dossier.standort_id = '||lc_standort_id(j);
+                    END IF;
+                    
+                     IF REGEXP_LIKE (p_query_exec, '(\%datenimport_id\%)') THEN
+                        p_query_exec := REPLACE (p_query_struct, '%datenimport_id%', lc_datenimport_id(j)) ;
+                    ELSE
+                        p_query_exec := p_query_exec ||' AND sh_dossier.soz_traeger_datenimport_id = '||lc_datenimport_id(j);
+                    END IF;
+                    
+                    -- On doit également limiter la sélection au niveau des filtres de prestation.
+                    p_query_exec := p_query_exec || ' AND sh_dossier.sh_leistungstyp_id IN  (SELECT sh_leistungstyp_id FROM v_sh_leistungstyp 
+                                    WHERE sh_leistungsfilter_id IN ('|| lc_leistungsfilter(i) ||'))' ;
+                  
+                    -- Remplacement des variables s.dossier_id
+                    p_query_exec := REPLACE (p_query_exec, 's.dossier_id', 'sh_dossier.sh_dossier_id');
+    
+ 
+                    BEGIN
+        
+                      EXECUTE IMMEDIATE p_query_exec INTO l_count ;
+                      
+                      p_query_exec := replace(p_query_exec, 'COUNT(DISTINCT sh_dossier.sh_dossier_id)', 'DISTINCT sh_dossier.sh_dossier_id') ;
+
+                      chrono := 0;
+                      chrono := TO_NUMBER(TO_CHAR(SYSTIMESTAMP, 'mmssff'));
+                      EXECUTE IMMEDIATE p_query_exec ;
+                      chrono := (TO_NUMBER(TO_CHAR(SYSTIMESTAMP, 'mmssff')) - chrono)/100000000 ; 
+                      chrono := ROUND(chrono, 5) ;
+                      
+                      IF chrono < 0 THEN 
+                          chrono := 0 ; 
+                      END IF;
+
+                      
+                      IF l_count <> 0 THEN 
+                          bench_id := plausi_bench_seq.nextval ;
+    
+                          pa_plausi_bench.pr_insert_test (bench_id, mp_plausi_id, lc_plausimeldung_id(i), l_hash, p_query_exec, l_count, sqlerrm, chrono
+                                                        , lc_standort_id(j), lc_datenimport_id(j), lc_jahr(j), lc_param1(i), lc_param2(i), lc_param3(i)) ;
+                        
+                          pa_plausi_bench.pr_insert_units(bench_id, mp_plausi_id, lc_plausimeldung_id(i), l_hash, p_query_exec) ;
+                    
+                          l_flag_sup_0 := 1;
+                      
+                      END IF;
+                      COMMIT;
+                      
+                   END ;
+                   
+                  -- Pour mieux identifier une éventuelle erreur :
+                  plausimeldung_id := lc_plausimeldung_id(i) ;
+                
+                END LOOP ;
+            
+            ELSE 
+            
+                    p_query_exec := p_query_struct ;
+                    
+                    /* 
+                       Pour être propre au niveau de l'insertion de la requête, on
+                       effectue les substitutions. Cependant, si la requête sur 
+                       les standort, datenimport et jahr ne retourne aucun élément,
+                       c'est qu'il ne peut, a fortiori, y avoir aucune unité s'y rapportant
+                       et par conséquent le nombre d'unités retourné sera 0 ou une erreur.
+                       Pratique pour effectuer un test technique de la plausi.
+                    */
+                    IF REGEXP_LIKE (p_query_exec, '(\%erhebungsjahr\%)') THEN
+                        p_query_exec := REPLACE (p_query_struct, '%erhebungsjahr%', mp_jahr) ;
+                    ELSE
+                        p_query_exec := p_query_exec ||' AND sh_dossier.jahr = '||mp_jahr;
+                    END IF;
+                    
+                    IF REGEXP_LIKE (p_query_exec, '(\%standort_id\%)') THEN
+                        p_query_exec := REPLACE (p_query_struct, '%standort_id%', mp_standort_id) ;
+                    ELSE 
+                        p_query_exec := p_query_exec ||' AND sh_dossier.standort_id = '||mp_standort_id;
+                    END IF;
+                    
+                     IF REGEXP_LIKE (p_query_exec, '(\%datenimport_id\%)') THEN
+                        p_query_exec := REPLACE (p_query_struct, '%datenimport_id%', mp_datenimport_id) ;
+                    ELSE
+                        p_query_exec := p_query_exec ||' AND sh_dossier.soz_traeger_datenimport_id = '||mp_datenimport_id;
+                    END IF;
+                    
+                    -- On doit également limiter la sélection au niveau des filtres de prestation.
+                    p_query_exec := p_query_exec || ' AND sh_dossier.sh_leistungstyp_id IN  (SELECT sh_leistungstyp_id FROM v_sh_leistungstyp 
+                                    WHERE sh_leistungsfilter_id IN ('|| lc_leistungsfilter(i) ||'))' ;
+                  
+                    p_query_exec := REPLACE (p_query_exec, 's.dossier_id', 'sh_dossier.sh_dossier_id');
+
+                    EXECUTE IMMEDIATE  p_query_exec INTO l_count ;
+                    
+
+            END IF ;
+            
+            IF l_flag_sup_0 = 0 THEN 
+              bench_id := plausi_bench_seq.nextval ;
+              pa_plausi_bench.pr_insert_test (bench_id, mp_plausi_id, lc_plausimeldung_id(i), l_hash, p_query_exec, 0, sqlerrm, chrono , 0, 0, 0, lc_param1(i), lc_param2(i), lc_param3(i)) ;
+            
+            END IF;
+
+          END;
+        END LOOP ; 
+
+
+        EXCEPTION /*dernier bloc*/
+
+          WHEN OTHERS THEN 
+              bench_id := plausi_bench_seq.nextval ;
+              l_err_mess := sqlerrm ;
+              l_err_code := sqlcode ;
+              INSERT INTO z_plausi_bench (id, plausi_id, plausimeldung_id, error_message, group_hash) VALUES (bench_id, mp_plausi_id, -1, l_err_mess, l_hash) ;
+              commit;
+              IF (l_err_code = -1013) THEN 
+                  RAISE ; -- très important pour arrêter l'exécution du script. On journalise le reste.
+              ELSE 
+                  NULL;
+              END IF;
+        
+ 
+ 
+  END pr_do_test ;
+                  
+          
+
+
+
+
+
+PROCEDURE pr_insert_units (
+                    mp_bench_id IN INTEGER  
+                  , mp_plausi_id IN INTEGER 
+                  , mp_plausimeldung_id IN INTEGER
+                  , mp_group_hash IN VARCHAR2
+                  , mp_sql_stmt IN VARCHAR2
+                  ) 
+                  
+                  IS
+                  
+  
+                
+    l_query       VARCHAR2(4000) ;   
+    
+    TYPE tbl_int IS TABLE OF INTEGER ;
+    
+    lc_doss_id   tbl_int ;
+                      
+  BEGIN
+  
+    BEGIN
+      EXECUTE IMMEDIATE mp_sql_stmt BULK COLLECT INTO lc_doss_id ;
+      FORALL i IN 1..lc_doss_id.COUNT
+        INSERT INTO z_plausi_bench_units VALUES (mp_plausi_id, mp_plausimeldung_id, mp_group_hash, lc_doss_id(i), mp_bench_id) ;
+    
+    
+    EXCEPTION WHEN OTHERS THEN
+      RAISE;
+ 
+    END ;      
+  
+  END pr_insert_units;
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------
+
+
+
+  PROCEDURE pr_do_test_1_unit (mp_plausi_id INTEGER, mp_jahr INTEGER) IS
+                  
+  
+    
+    TYPE tbl_chr IS TABLE OF VARCHAR2(4000) ;
+    TYPE tbl_int IS TABLE OF INTEGER ;
+ 
+    lc_param1             tbl_int ;
+    lc_param2             tbl_int ;
+    lc_param3             tbl_int ;
+    
+    lc_sql_from           tbl_chr ;
+    lc_sql_where          tbl_chr ;
+    lc_sql_and            tbl_chr ;
+    lc_leistungsfilter    tbl_chr ;
+    lc_plausimeldung_id   tbl_int ;
+    
+    lc_standort_id        tbl_int ;
+    lc_datenimport_id     tbl_int ;
+    lc_jahr               tbl_int ;
+    
+    
+    
+    p_query_struct    VARCHAR2(4000) ;
+    p_query_exec      VARCHAR2(4000) ;
+    p_query_ins       VARCHAR2(4000) ; 
+    
+    sql_from          z_multitest.p_from_bedingung%TYPE ;
+    sql_where         z_multitest.p_where_bedingung%TYPE ;
+    sql_and           z_multitest.p_and_bedingung%TYPE ;
+    leistungsfilter   z_multitest.p_leistungsfilter%TYPE ;
+    
+    param1            z_multitest.pm_param1%TYPE ;
+    param2            z_multitest.pm_param2%TYPE ;
+    param3            z_multitest.pm_param3%TYPE ;
+    
+    plausimeldung_id  INTEGER ;
+    
+    chrono          NUMBER(36,9) ;
+
+    l_count         INTEGER ;
+    l_flag_sup_0    INTEGER ;
+    l_query         VARCHAR2(4000) ;
+    l_query1        VARCHAR2(4000) ;
+    l_query2        VARCHAR2(4000) ;
+    l_hash          INTEGER := 0 ;
+    l_err_mess      VARCHAR2(4000) ;
+    l_err_code      INTEGER := 0 ;
+    
+    sh_dossier_id   INTEGER := 0;
+    
+   
+    
+    bench_id    INTEGER ;
+
+
+    BEGIN <<MAIN_BLOC>>
+
+    EXECUTE IMMEDIATE 'ALTER SESSION SET NLS_DATE_FORMAT = ''DD.MM.RRRR HH24:MI:SS'' ' ;
+    EXECUTE IMMEDIATE 'ALTER SESSION SET NLS_LANGUAGE = ''FRENCH'' ' ;
+
+       BEGIN <<BLOC_STRUCT_PLAUSI>>
+       /*-----------------------------------------------------------------------
+       L'ensemble du test se base sur la table Z_MULTITEST qui est une synthèse
+       des différentes tables liées aux plausis.
+       
+       Le code de création de la table est donné en commentaire en bas du script.
+       
+       Cette table se construit en déclinant les plausis selon les paramètres,
+       présents dans V_PLAUSIMELDUNG.
+       
+       On effectue donc une prmière boucle pour créer chaque plausi en fonction 
+       de chacun des paramètres. Attention, les paramètres ne sont pas forcément 
+       les membres de l'unité d'assistance ; en créant chaque plausi en fonction 
+       des paramètres on est donc certain de la tester de la bonne manière, i.e.
+       telle qu'elle sera effectivement appelée.
+       
+       -----------------------------------------------------------------------*/
+   
+
+          l_query1 := 'SELECT   p_from_bedingung
+                              , p_where_bedingung
+                              , p_and_bedingung
+                              , p_leistungsfilter
+                              , pm_param1
+                              , pm_param2
+                              , pm_param3
+                              , pm_plausimeldung_id 
+                            
+                            
+                        FROM    z_multitest 
+                       WHERE    p_plausi_id = '||mp_plausi_id||' AND pmb_sprache_id = 1' ;
+                       
+                     
+          EXECUTE IMMEDIATE l_query1 BULK COLLECT INTO lc_sql_from, lc_sql_where, lc_sql_and, lc_leistungsfilter, lc_param1, lc_param2, lc_param3, lc_plausimeldung_id ;
+        
+        EXCEPTION WHEN OTHERS THEN 
+          RAISE ;
+        
+        END;
+       
+        BEGIN <<BLOC_VARIABLES_POURCENT>>
+        
+        /*
+        On traite ici le cas des variables "%variable%".
+        
+        L'avantage de ce traitement est que l'on peut également paramétrer les 
+        plausis sur des STANDORT, DATENIMPORT et ANNEE-EP particuliers et selon
+        n'importe quelle combinaison.
+        
+        Autre avantage : en mettant un standort, une année ou un datenimport bidon
+        dans les paramètres de la procédure, on peut effectuer un test très rapide
+        de la structure des requêtes.
+        
+        N.b. : actuellement, les variables "%var%" ne sont pas utilisées exactement comme 
+               dans les procédures DO_PLAUSI etc. On se contente de les remplacer
+               par les valeurs se trouvant dans SH_DOSSIER. Il peut donc y avoir quelques
+               différences dans les totaux.
+               À voir/adapter. 
+        */
+   
+              l_query2 := 'SELECT   DISTINCT standort_id
+                                  , soz_traeger_datenimport_id
+                                  , jahr 
+                            FROM    sh_dossier 
+                            WHERE   standort_id IS NOT NULL
+                                    AND soz_traeger_datenimport_id IS NOT NULL';
+              
+               -- les trois conditions nous permettent de limiter et paramétrer
+               -- l'ensemble retourné par la requête et sur lequel il faudra boucler
+            /*   IF (mp_standort_id <> 0) THEN 
+                  l_query2 := l_query2 ||' AND standort_id = '||mp_standort_id ; 
+               END IF;
+               
+               IF (mp_datenimport_id <> 0) THEN 
+                  l_query2 := l_query2 ||' AND soz_traeger_datenimport_id = '||mp_datenimport_id ; 
+               END IF;
+             */  
+               IF (mp_jahr <> 0) THEN 
+                  l_query2 := l_query2 ||' AND jahr = '||mp_jahr ; 
+               END IF;
+          
+            EXECUTE IMMEDIATE l_query2 BULK COLLECT INTO lc_standort_id, lc_datenimport_id, lc_jahr ;
+        
+        EXCEPTION WHEN OTHERS THEN 
+          RAISE ;
+        
+        
+        END ;
+        
+        
+        /* Pemière boucle à partir de la première requête construite ci-dessus */ 
+        
+        -- Hash pour identifier le lot 
+        EXECUTE IMMEDIATE 'SELECT ORA_HASH( to_char(sysdate, ''RRRR-MM-DD HH24:MI:SS'')) from dual' INTO l_hash;
+        l_flag_sup_0 := 0;
+        l_count := 0;
+        FOR i IN 1..lc_plausimeldung_id.COUNT
+        LOOP
+
+          p_query_struct := 'SELECT     p_from_bedingung, p_where_bedingung, p_leistungsfilter, pm_param1, pm_param2, pm_param3, pm_plausimeldung_id
+                               FROM     z_multitest 
+                              WHERE     pmb_sprache_id = 1
+                                        AND p_plausi_id = '||mp_plausi_id ;
+                                  
+          IF REGEXP_LIKE(lc_param1(i), '[0-9]{1,}') THEN 
+              p_query_struct :=  p_query_struct||' AND pm_param1 = '||lc_param1(i) ;  
+          END IF ; 
+          
+          IF REGEXP_LIKE(lc_param2(i), '[0-9]{1,}') THEN 
+              p_query_struct :=  p_query_struct||' AND pm_param2 = '||lc_param2(i) ;  
+          END IF ;                             
+          
+          IF REGEXP_LIKE(lc_param3(i), '[0-9]{1,}') THEN 
+              p_query_struct :=  p_query_struct||' AND pm_param3 = '||lc_param3(i) ;  
+          END IF ; 
+                   
+          BEGIN
+          
+            -- Flag d'existence d'au moins une unité : on va devoir faire en fonction
+         
+            
+            --l_flag_sup_0 := 0 ;
+
+            -- Construction de la requête          
+            p_query_struct := 'SELECT COUNT(DISTINCT sh_dossier.sh_dossier_id) FROM '||lc_sql_from(i)||' WHERE '||lc_sql_where(i)||' '||lc_sql_and(i) ;
+            
+            -- Remplacement des paramètres
+            p_query_struct := replace (p_query_struct, ':param1', lc_param1(i)) ;
+            p_query_struct := replace (p_query_struct, ':param2', lc_param2(i)) ;
+            p_query_struct := replace (p_query_struct, ':param3', lc_param3(i)) ;
+
+            /* Deuxième boucle sur la deuxième requête construite au début */
+            
+            -- Si la requête n'est pas vide, fait tourner la boucle
+          
+            
+                FOR j IN 1..lc_datenimport_id.COUNT
+                LOOP
+                
+                    -- On remplace les variables "%var%
+                    p_query_exec := p_query_struct ;
+                    
+                    IF REGEXP_LIKE (p_query_exec, '(\%erhebungsjahr\%)') THEN
+                        p_query_exec := REPLACE (p_query_struct, '%erhebungsjahr%', lc_jahr(j)) ;
+                    ELSE
+                        p_query_exec := p_query_exec ||' AND sh_dossier.jahr = '||lc_jahr(j);
+                    END IF;
+                    
+                    IF REGEXP_LIKE (p_query_exec, '(\%standort_id\%)') THEN
+                        p_query_exec := REPLACE (p_query_struct, '%standort_id%', lc_standort_id(j)) ;
+                    ELSE
+                        p_query_exec := p_query_exec ||' AND sh_dossier.standort_id = '||lc_standort_id(j);
+                    END IF;
+                    
+                     IF REGEXP_LIKE (p_query_exec, '(\%datenimport_id\%)') THEN
+                        p_query_exec := REPLACE (p_query_struct, '%datenimport_id%', lc_datenimport_id(j)) ;
+                    ELSE
+                        p_query_exec := p_query_exec ||' AND sh_dossier.soz_traeger_datenimport_id = '||lc_datenimport_id(j);
+                    END IF;
+                    
+                    -- On doit également limiter la sélection au niveau des filtres de prestation.
+                    p_query_exec := p_query_exec || ' AND sh_dossier.sh_leistungstyp_id IN  (SELECT sh_leistungstyp_id FROM v_sh_leistungstyp 
+                                    WHERE sh_leistungsfilter_id IN ('|| lc_leistungsfilter(i) ||')) AND ROWNUM = 1' ;
+                  
+                    -- Remplacement des variables s.dossier_id
+                    p_query_exec := REPLACE (p_query_exec, 's.dossier_id', 'sh_dossier.sh_dossier_id');
+    
+ 
+        
+                    EXECUTE IMMEDIATE p_query_exec INTO l_count ;
+
+                    EXIT WHEN l_count > 0;
+  
+                  -- Pour mieux identifier une éventuelle erreur :
+                  plausimeldung_id := lc_plausimeldung_id(i) ;
+               
+                
+                
+                END LOOP ;
+          
+   
+          --  dbms_output.put_line('p_query_exec : '||p_query_exec);
+            p_query_exec := REPLACE(p_query_exec, 'COUNT(DISTINCT sh_dossier.sh_dossier_id)', 'DISTINCT sh_dossier.sh_dossier_id') ;
+            EXECUTE IMMEDIATE p_query_exec INTO sh_dossier_id ;
+            l_err_mess := sqlerrm ;
+            
+            p_query_ins := 'INSERT INTO z_plausi_1_unit VALUES (
+          
+            '||plausi_1_unit_seq.nextval||'
+          , '||mp_plausi_id||'
+          , '||lc_plausimeldung_id(i)||'
+          ,  '||sh_dossier_id||'
+          , '''||replace(p_query_exec, '''', '''''')||'''
+          , '||nvl(l_count, 0)||'
+          , '''||replace(l_err_mess, '''', '´')||'''
+          , 0
+          , '''||to_date(sysdate, 'DD.MM.RRRR HH24:MI:SS')||'''
+          , 0
+          , 0
+          , '||mp_jahr||'
+          , 0
+          , 0
+          , 0
+          )' ;
+          
+          EXECUTE IMMEDIATE p_query_ins;
+            COMMIT;
+          --  dbms_output.put_line('Plausi : '||mp_plausi_id||' / Counter : '|| l_count ||' / dossier : '|| sh_dossier_id) ;   
+   
+          EXIT WHEN l_count > 0;
+          END;
+        END LOOP ; 
+
+
+        EXCEPTION /*dernier bloc*/
+
+          WHEN OTHERS THEN 
+              l_err_mess := sqlerrm ;
+              l_err_code := sqlcode ;
+              
+         --     dbms_output.put_line(l_err_mess) ;
+         
+           p_query_ins := 'INSERT INTO z_plausi_1_unit VALUES (
+          
+            '||plausi_1_unit_seq.nextval||'
+          , '||mp_plausi_id||'
+          , '||plausimeldung_id||'
+          ,  '||-1||'
+          , '''||replace(p_query_exec, '''', '''''')||'''
+          , '||nvl(l_count, 0)||'
+          , '''||replace(l_err_mess, '''', '´')||'''
+          , 0
+          , '''||to_date(sysdate, 'DD.MM.RRRR HH24:MI:SS')||'''
+          , 0
+          , 0
+          , '||mp_jahr||'
+          , 0
+          , 0
+          , 0
+          )' ;
+            EXECUTE IMMEDIATE p_query_ins;
+         
+           --   INSERT INTO z_plausi_bench (id, plausi_id, plausimeldung_id, error_message, group_hash) VALUES (bench_id, mp_plausi_id, -1, l_err_mess, l_hash) ;
+              commit;
+              IF (l_err_code = -1013) THEN 
+                  RAISE ; -- très important pour arrêter l'exécution du script. On journalise le reste.
+              ELSE 
+                  NULL;
+              END IF;
+        
+
+  END pr_do_test_1_unit ;
+
+
+
+
+PROCEDURE pr_tech_test (mp_plausi_id IN INTEGER DEFAULT 0) IS
+
+BEGIN
+  
+  IF (mp_plausi_id = 0) THEN 
+  
+    FOR re IN (SELECT DISTINCT plausi_id FROM v_plausi)
+    LOOP
+      pa_plausi_bench.pr_do_test(re.plausi_id, 9999, 0, 0, 1) ;
+      commit;
+    
+    END LOOP;
+    
+  ELSE
+      pa_plausi_bench.pr_do_test(mp_plausi_id, 9999, 0, 0, 1) ;
+  END IF ;
+
+END PR_TECH_TEST ;
+
+
+
+
+/* Solution rapide, not the best...*/
+
+
+
+
+
+
+
+
+
+
+END pa_plausi_bench ;
+
+
+
+
+
+
+
+
+/*------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+DROP SEQUENCE plausi_bench_seq ;
+commit;
+
+CREATE SEQUENCE plausi_bench_seq
+  MINVALUE 1
+  START WITH 1
+  INCREMENT BY 1
+  CACHE 20;
+commit;  
+
+
+
+DROP SEQUENCE plausi_1_unit_seq ;
+commit;
+
+CREATE SEQUENCE plausi_1_unit_seq
+  MINVALUE 1
+  START WITH 1
+  INCREMENT BY 1
+  CACHE 20;
+commit;  
+
+--------------------------------------------------------------------------------
+
+--- Session NLS parameters pour un affichage complet :
+ALTER SESSION SET NLS_DATE_FORMAT = 'DD.MM.RRRR HH24:MI:SS'; 
+  
+
+
+--------------------------------------------------------------------------------
+drop table z_multitest ;
+commit;
+
+            CREATE TABLE    z_multitest AS           
+                 
+                  SELECT    
+                            P.PLAUSI_ID AS P_PLAUSI_ID
+                          ,	P.ALPHA_CODE AS P_ALPHA_CODE
+                          ,	P.SH_LEISTUNGSFILTER_ID AS P_SH_LEISTUNGSFILTER_ID
+                          ,	P.LEISTUNGSFILTER AS P_LEISTUNGSFILTER
+                          ,	P.KANTON_ID AS P_KANTON_ID
+                          ,	P.B_AKTIV_PLAUSEX AS P_B_AKTIV_PLAUSEX
+                          ,	P.B_AKTIV_ISOS AS P_B_AKTIV_ISOS
+                          ,	P.PLAUSITYP_ID AS P_PLAUSITYP_ID
+                          ,	P.PLAUSISTUFE_ID AS P_PLAUSISTUFE_ID
+                          ,	P.TRIGGER_TABELLE AS P_TRIGGER_TABELLE
+                          ,	P.TRIGGER_ATTRIBUT AS P_TRIGGER_ATTRIBUT
+                          ,	P.FROM_BEDINGUNG AS P_FROM_BEDINGUNG
+                          ,	P.WHERE_BEDINGUNG AS P_WHERE_BEDINGUNG
+                          ,	P.AND_BEDINGUNG AS P_AND_BEDINGUNG
+                          ,	P.TEILPLAUSI AS P_TEILPLAUSI
+                          ,	P.PLAUSIREGEL_KLASSE_ID AS P_PLAUSIREGEL_KLASSE_ID
+                          ,	P.PLAUSIMELDUNG_KLASSE_ID AS P_PLAUSIMELDUNG_KLASSE_ID
+                          ,	P.KLASSIERUNG AS P_KLASSIERUNG
+                          ,	P.SCHWELLENWERT_ABS AS P_SCHWELLENWERT_ABS
+                          ,	P.SCHWELLENWERT_REL AS P_SCHWELLENWERT_REL
+                          ,	P.SCHWELLENWERT_ABS_MAX AS P_SCHWELLENWERT_ABS_MAX
+                          ,	P.SCHWELLENWERT_REL_MAX AS P_SCHWELLENWERT_REL_MAX
+                          ,	P.B_RUECKMELDUNG AS P_B_RUECKMELDUNG
+                          ,	P.PROC AS P_PROC
+                          ,	P.T_PENDENZ AS P_T_PENDENZ
+                          ,	P.B_AKTIV_ISOS_IMPUTATION AS P_B_AKTIV_ISOS_IMPUTATION
+                          ,	P.UPDATE_BEDINGUNG AS P_UPDATE_BEDINGUNG
+                          ,	P.UPDATE_REIHENFOLGE AS P_UPDATE_REIHENFOLGE
+                          ,	P.UPDATE_PROC AS P_UPDATE_PROC
+                          ,	P.SELECT_WERT_VOR_UPDATE AS P_SELECT_WERT_VOR_UPDATE
+                            
+                          ,	PM.PLAUSIMELDUNG_ID AS PM_PLAUSIMELDUNG_ID
+                          ,	PM.PLAUSI_ID AS PM_PLAUSI_ID
+                          ,	PM.PARAM1 AS PM_PARAM1
+                          ,	PM.PARAM2 AS PM_PARAM2
+                          ,	PM.PARAM3 AS PM_PARAM3
+                          ,	PM.SEKTIONS AS PM_SEKTIONS
+                          ,	PM.VARNO AS PM_VARNO
+                          ,	PM.SEKTION_HELP AS PM_SEKTION_HELP
+                            
+                          ,	PMB.PLAUSIMELDUNG_ID AS PMB_PLAUSIMELDUNG_ID
+                          ,	PMB.SPRACHE_ID AS PMB_SPRACHE_ID
+                          ,	PMB.MELDUNG AS PMB_MELDUNG
+                            
+                          ,	PMKB.PLAUSIMELDUNG_KLASSE_ID AS PMKB_PLAUSIMELDUNG_KLASSE_ID
+                          ,	PMKB.SPRACHE_ID AS PMKB_SPRACHE_ID
+                          ,	PMKB.BEZEICHNUNG AS PMKB_BEZEICHNUNG
+                            
+                          ,	PRB.PLAUSIREGEL_ID AS PRB_PLAUSIREGEL_ID
+                          ,	PRB.SPRACHE_ID AS PRB_SPRACHE_ID
+                          ,	PRB.BEZEICHNUNG AS PRB_BEZEICHNUNG
+                          ,	PRB.BESCHREIBUNG AS PRB_BESCHREIBUNG
+                            
+                          ,	PMIB.PLAUSIMELDUNG_ID AS PMIB_PLAUSIMELDUNG_ID
+                          ,	PMIB.SPRACHE_ID AS PMIB_SPRACHE_ID
+                          ,	PMIB.MELDUNG AS PMIB_MELDUNG
+
+                          
+                   FROM     v_plausi p
+                  
+        LEFT OUTER JOIN     v_plausimeldung pm
+                     ON     p.plausi_id = pm.plausi_id
+        
+        LEFT OUTER JOIN     v_plausimeldung_bez pmb
+                     ON     pm.plausimeldung_id = pmb.plausimeldung_id
+
+        LEFT OUTER JOIN     v_plausimeldung_klasse_bez pmkb
+                     ON     pmkb.plausimeldung_klasse_id = p.plausimeldung_klasse_id
+                            AND pmb.sprache_id = pmkb.sprache_id
+                            
+        LEFT OUTER JOIN     v_plausimeldung_imputation_bez pmib
+                     ON     pmib.plausimeldung_id = pm.plausimeldung_id
+                            AND pmb.sprache_id = pmib.sprache_id                    
+
+        LEFT OUTER JOIN     v_plausiregel_bez prb
+                     ON     prb.plausiregel_id = p.plausiregel_klasse_id
+                            AND pmb.sprache_id = prb.sprache_id
+                        ;
+
+
+
+
+  CREATE INDEX    indx_multitest_001 
+            ON    z_multitest (p_plausi_id, pm_plausi_id) ;
+  
+  CREATE INDEX    indx_multitest_002
+            ON    z_multitest (pm_plausimeldung_id, pmb_plausimeldung_id) ;
+
+  commit;
+
+
+
+----------------------------------------------------------------- SQL Excel TCD
+
+      SELECT 
+                  zpbu.sh_dossier_id as "N° du dossier"
+                , zpb.standort_id as "Standort"
+                , zpb.datenimport_id as "Datenimport"
+                , zpb.jahr as "Année"
+                , zpb.number_of_units_hit as "Tot. pro stand/dat/jahr"
+                , round(zpb.execution_time, 1) as "Temps d'exécution (msec)"
+                , zpb.plausi_id as "N° de plausi"
+                , zpb.plausimeldung_id as "N° de plausimeldung"  
+                , zpb.datum as "Date du test" 
+                , zpb.id as "ID du test (bench_id)"
+                , zpb.sql_request as "Requête SQL"
+                , zpb.param1 as "Paramètre 1"
+                , zpb.param2 as "Paramètre 2"
+                , zpb.param3 as "Paramètre 3"
+                , zpb.group_hash as "Hash_id (id plausi/test)"
+                , zpb.error_message as "Message d'erreur"
+                , zm.pmb_meldung as "Message de la plausi" 
+                , CASE 
+                    WHEN zpb.datum = (select max(datum) from z_plausi_bench 
+                                            where (zpb.plausimeldung_id = z_plausi_bench.plausimeldung_id  
+                                                  and zpb.standort_id = z_plausi_bench.standort_id
+                                                  and zpb.datenimport_id = z_plausi_bench.datenimport_id))
+                    THEN 'Oui'
+                    ELSE 'Non'
+                  END AS "Dernier Test"
+                
+                
+                
+        FROM      z_plausi_bench zpb
+                
+LEFT OUTER JOIN   z_plausi_bench_units zpbu
+             ON   zpb.id = zpbu.bench_id and zpb.group_hash = zpbu.group_hash
+                
+LEFT OUTER JOIN   z_multitest zm
+             ON   zpb.plausimeldung_id = zm.pm_plausimeldung_id and zm.pmb_sprache_id = 2
+                
+
+
+
+
+
+*/
+
