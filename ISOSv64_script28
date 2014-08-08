@@ -1,3 +1,46 @@
+/*------------------------------------------------------------------------------
+
+ * What....... : Modification des structures (noms de tables, colonnes) pour la 
+                 nouvelle version ISOS compatible avec PlausEx
+ * Date....... : 05.08.2014 (new version)
+ * Rem........ : 
+      - correction d'une erreur dans 3 UPDATE (mauvaise colonne est remplacée)
+      - suppression du package DO_PLAUSI ne tenant pas compte de l'historisation
+      - ajouts au package DBO permettant l'utilisation des fonctions communes à
+        ISOS et PlausEx : quatre fonctions :
+        
+         FUNCTION FC_CONCAT(str1 VARCHAR2, str2 VARCHAR2)  RETURN VARCHAR2 ;
+         FUNCTION FC_SUBSTR(str VARCHAR2, init INTEGER, len INTEGER)  RETURN VARCHAR2 ;
+         FUNCTION FC_LENGTH(str VARCHAR2)  RETURN INTEGER ;
+         FUNCTION FC_TO_INT(str VARCHAR2)  RETURN INTEGER ;
+  
+  * A FAIRE :
+    --------
+          - remettre le package DO_PLAUSI avec la partie sur l'historisation
+          - trouver une méthode pour suivre les différentes versions du code
+    
+    
+ *!*!*!*!*!*!* 
+ * ATTENTION :
+ *!*!*!*!*!*!* 
+      
+      - ce script utilise la fonction "REPLACE" à différents endroits. Le fait de
+        jouer plusieurs fois une PARTIE ou la TOTALITÉ de ce script peut entrainer
+        des modifications involontaires et source d'erreurs importantes
+        dans les règles de plausi. --> CE SCRIPT NE DOIT ÊTRE JOUÉ QU'UNE SEULE 
+        FOIS... ou avec beaucoup de précautions
+        
+      - ce script ne modifie pas les règles de plausi elles-mêmes (à l'exception
+        de celles qui sont touchées directerment par le changemenr de structure)
+        
+
+------------------------------------------------------------------------------*/
+
+
+
+
+
+
 ALTER TABLE sh_zustaendigkeit RENAME TO v_sh_zustaendigkeit;
 
 ALTER TABLE roh_ue_person_albv_leistung RENAME TO roh_ue_person_albv;
@@ -13,12 +56,152 @@ ALTER TABLE ue_person_albv RENAME COLUMN betrag_tot_auszahlung TO betrag_tot_aus
 ALTER TABLE sec_ue_person_albv RENAME COLUMN betrag_tot_auszahlung TO betrag_tot_auszahlungen;
 
 ALTER TABLE roh_sh_dossier RENAME COLUMN betrag_ausbezahlt_zuschuss_gem TO betrag_ausbez_zuschuss_gem;
-ALTER TABLE sh_dossier RENAME COLUMN betrag_ausbezahlt_zuschuss_gem TO betrag_ausbez_zuschuss_gem;
+ALTER TABLE sh_dossier RENAME COLUMN betrag_ausbezahlt_zuschuss_gem TO betrag_ausbez_zuschuss_gem; --- Nowait !!!
 ALTER TABLE sec_sh_dossier RENAME COLUMN betrag_ausbezahlt_zuschuss_gem TO betrag_ausbez_zuschuss_gem;
 
-ALTER TABLE roh_sh_dossier ADD version INTEGER DEFAULT 0;
+/*
+ALTER TABLE roh_sh_dossier ADD VERSION INTEGER DEFAULT 0;
+-- select version from roh_sh_dossier ;
 ALTER TABLE sh_dossier ADD version INTEGER DEFAULT 0;
 ALTER TABLE sec_sh_dossier ADD version INTEGER DEFAULT 0;
+*/
+
+--------------------------------------------------------------- Added 2014.08.06
+
+
+ALTER TABLE ROH_ANTRAGSTELLER  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_ANTRAGSTELLER_ALBV  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_ANTRAGSTELLER_BEDARF  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_ANTRAGSTELLER_EINKOMMEN  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_ANTRAGSTELLER_ERWERBSIT  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_ERGAENZUNGSLEISTUNG  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_HH_PERSON  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_SH_AUSGABE  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_SH_AUSZAHLUNG_MONAT  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_SH_BEDARF  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_SH_DOSSIER  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_SH_DOSSIER_PLAUSI  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_SH_MASSNAHME  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_SH_MERKMAL  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_SH_WBSL_EINKOMMEN  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_SH_ZUSATZEINKOMMEN  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_UE_PERSON  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_UE_PERSON_ALBV  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_UE_PERSON_BEDARF  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_UE_PERSON_EINKOMMEN  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ROH_UE_PERSON_ERWERBSIT  ADD VERSION INTEGER DEFAULT 0;
+
+ALTER TABLE ANTRAGSTELLER  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ANTRAGSTELLER_ALBV ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ANTRAGSTELLER_BEDARF ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ANTRAGSTELLER_EINKOMMEN ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE ANTRAGSTELLER_ERWERBSIT ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE HH_PERSON ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SH_AUSGABE ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SH_AUSZAHLUNG_MONAT ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SH_BEDARF ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SH_DOSSIER ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SH_DOSSIER_PLAUSI ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SH_MASSNAHME ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SH_MERKMAL ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SH_WBSL_EINKOMMEN ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SH_ZUSATZEINKOMMEN ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE UE_PERSON ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE UE_PERSON_ALBV ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE UE_PERSON_BEDARF ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE UE_PERSON_EINKOMMEN ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE UE_PERSON_ERWERBSIT ADD VERSION INTEGER DEFAULT 0;
+
+ALTER TABLE SEC_ANTRAGSTELLER  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_ANTRAGSTELLER_ALBV  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_ANTRAGSTELLER_BEDARF  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_ANTRAGSTELLER_EINKOMMEN  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_ANTRAGSTELLER_ERWERBSIT  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_HH_PERSON  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_SH_AUSGABE  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_SH_AUSZAHLUNG_MONAT  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_SH_BEDARF  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_SH_DOSSIER  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_SH_MASSNAHME  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_SH_MERKMAL  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_SH_WBSL_EINKOMMEN  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_SH_ZUSATZEINKOMMEN  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_UE_PERSON  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_UE_PERSON_ALBV  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_UE_PERSON_BEDARF  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_UE_PERSON_EINKOMMEN  ADD VERSION INTEGER DEFAULT 0;
+ALTER TABLE SEC_UE_PERSON_ERWERBSIT  ADD VERSION INTEGER DEFAULT 0;
+
+
+
+    UPDATE      V_PLAUSI 
+       SET      AND_BEDINGUNG = 'AND sh_dossier.version = '||regexp_replace(FROM_BEDINGUNG, '^(.*)(INNER JOIN )(.*)( ON)(.*)', '\3')||'.version' 
+     WHERE      TRIM(REGEXP_REPLACE(FROM_BEDINGUNG, '^(.*)(INNER JOIN )(.*)( ON)(.*)', '\3')) IN (
+
+                      'antragsteller',
+                      'antragsteller_albv',
+                      'antragsteller_bedarf',
+                      'antragsteller_einkommen',
+                      'antragsteller_erwerbsit',
+                      'hh_person',
+                      'sh_ausgabe',
+                      'sh_auszahlung_monat',
+                      'sh_bedarf',
+                      'sh_dossier',
+                      'sh_dossier_plausi',
+                      'sh_massnahme',
+                      'sh_merkmal',
+                      'sh_wbsl_einkommen',
+                      'sh_zusatzeinkommen',
+                      'ue_person',
+                      'ue_person_albv',
+                      'ue_person_bedarf',
+                      'ue_person_einkommen',
+                      'ue_person_erwerbsit' ) ;
+                      
+
+    UPDATE      V_PLAUSI 
+       SET      AND_BEDINGUNG = 'AND sh_dossier.version = ue_person.version' 
+     WHERE      PLAUSI_ID IN (15121, 15131, 2121, 2161,16261,15101,2151,16241,2181) ;
+
+    UPDATE      V_PLAUSI 
+       SET      AND_BEDINGUNG = 'AND sh_dossier.version = antragsteller.version' 
+     WHERE      PLAUSI_ID IN (15100,83,86,91,3011,3122,2101,3142,16260,85,90) ;
+
+    UPDATE      V_PLAUSI 
+       SET      AND_BEDINGUNG = 'AND sh_dossier.version = hh_person.version' 
+     WHERE      PLAUSI_ID = 16251 ;
+     
+    UPDATE      V_PLAUSI 
+       SET      AND_BEDINGUNG = 'AND sh_dossier.version = antragsteller_bedarf.version' 
+     WHERE      PLAUSI_ID IN (16320, 16330) ;
+          
+    UPDATE      V_PLAUSI 
+       SET      AND_BEDINGUNG = 'AND sh_dossier.version = ue_person_bedarf.version' 
+     WHERE      PLAUSI_ID IN (16321, 16331) ;
+
+    UPDATE      V_PLAUSI 
+       SET      AND_BEDINGUNG = 'AND sh_dossier.version = p.version' 
+     WHERE      PLAUSI_ID = 2181  ;
+
+/*     
+    SELECT      plausi_id,
+                from_bedingung,
+                and_bedingung
+      FROM      v_plausi
+     WHERE      LENGTH(regexp_replace(regexp_replace (from_bedingung, '(INNER)', '@'), '[^@]', '')) > 1
+                AND and_bedingung IS NULL ;
+                
+    UPDATE      v_plausi
+       SET      and_bedingung = 'AND '||and_bedingung
+ WHERE NOT      regexp_like (upper(trim(and_bedingung)), '^AND' ) ;
+                
+                
+                
+*/
+--------------------------------------------------------------------------------
+
+
 
 ALTER TABLE v_beruf ADD gueltig_ab_datum DATE NULL;
 ALTER TABLE v_beruf ADD gueltig_ab_version VARCHAR2(32) NULL;
@@ -116,9 +299,21 @@ SELECT     SH_DOSSIER_ID, UE_PERSON_ID, ANTRAGSART_ID, BETRAG_ZUGESPROCHEN, DAT_
 FROM       VW_NichtLeereUePersonen
 /
 
+
+
+/* Modifié, la mauvaise colonne était changée.
+
 UPDATE v_plausi set from_bedingung = REPLACE(where_bedingung, 'VW_NichtLeereAntragsteller.betrag_tot_auszahlung', 'VW_NichtLeereAntragsteller.betrag_tot_auszahlungen');
 UPDATE v_plausi set from_bedingung = REPLACE(where_bedingung, 'VW_NichtLeereUePersonen.betrag_tot_auszahlung', 'VW_NichtLeereUePersonen.betrag_tot_auszahlungen');
 UPDATE v_plausi set from_bedingung = REPLACE(where_bedingung, 'VW_NichtLeerePersonen.betrag_tot_auszahlung', 'VW_NichtLeerePersonen.betrag_tot_auszahlungen');
+*/
+
+UPDATE v_plausi set where_bedingung = REPLACE(where_bedingung, 'VW_NichtLeereAntragsteller.betrag_tot_auszahlung', 'VW_NichtLeereAntragsteller.betrag_tot_auszahlungen');
+UPDATE v_plausi set where_bedingung = REPLACE(where_bedingung, 'VW_NichtLeereUePersonen.betrag_tot_auszahlung', 'VW_NichtLeereUePersonen.betrag_tot_auszahlungen');
+UPDATE v_plausi set where_bedingung = REPLACE(where_bedingung, 'VW_NichtLeerePersonen.betrag_tot_auszahlung', 'VW_NichtLeerePersonen.betrag_tot_auszahlungen');
+
+
+
 
 CREATE OR REPLACE FORCE VIEW "ISOS"."VW_DBL_ALBV" ("ID", "SLT", "GEM", "BZK", "KTN", "NB_UA", "VERS_DEM", "GBT_DEM", "DFP_DEM", "DLP_DEM", "UE_ID1", "VERS_UE1", "GBT_UE1", "DFP_UE1", "DLP_UE1", "UE_ID2", "VERS_UE2", "GBT_UE2", "DFP_UE2", "DLP_UE2", "UE_ID3", "VERS_UE3", "GBT_UE3", "DFP_UE3", "DLP_UE3", "UE_ID4", "VERS_UE4", "GBT_UE4", "DFP_UE4", "DLP_UE4", "UE_ID5", "VERS_UE5", "GBT_UE5", "DFP_UE5", "DLP_UE5", "UE_ID6", "VERS_UE6", "GBT_UE6", "DFP_UE6", "DLP_UE6", "DFP_CUM", "DLP_CUM") AS 
   SELECT "ID",
@@ -371,19 +566,27 @@ CREATE OR REPLACE FORCE VIEW "ISOS"."VW_DBL_ALBV" ("ID", "SLT", "GEM", "BZK", "K
 
 create or replace 
 PACKAGE DBO IS 
+  
+    FUNCTION FC_TEST_VERSICHERTENNUMMER (p_vers_nummer IN VARCHAR2) RETURN INTEGER;
+    FUNCTION FC_IS_ALBV_KANTON(p_sozialleistungstraeger IN VARCHAR2) RETURN INTEGER;
+    FUNCTION FC_IS_6_MT_BETWEEN(pFromDate IN DATE, pToDate IN DATE) RETURN INTEGER;
+    FUNCTION FC_BFS_CODE(p_plz_id VARCHAR2) RETURN INTEGER;
+    FUNCTION FC_ISNUMERIC(param VARCHAR2) RETURN BOOLEAN;
+    FUNCTION FC_TMJ(tt INTEGER, mm INTEGER, jjjj INTEGER) RETURN DATE;
+    FUNCTION FC_LEFT(str VARCHAR2, len INTEGER) RETURN VARCHAR2;
+    FUNCTION FC_CONCAT(str1 VARCHAR2, str2 VARCHAR2)  RETURN VARCHAR2 ;
+    FUNCTION FC_SUBSTR(str VARCHAR2, init INTEGER, len INTEGER)  RETURN VARCHAR2 ;
+    FUNCTION FC_LENGTH(str VARCHAR2)  RETURN INTEGER ;
+    FUNCTION FC_TO_INT(str VARCHAR2)  RETURN INTEGER ;
 
-   FUNCTION FC_TEST_VERSICHERTENNUMMER (p_vers_nummer IN VARCHAR2) RETURN INTEGER;
-   FUNCTION FC_IS_ALBV_KANTON(p_sozialleistungstraeger IN VARCHAR2) RETURN INTEGER;
-   FUNCTION FC_IS_6_MT_BETWEEN(pFromDate IN DATE, pToDate IN DATE) RETURN INTEGER;
-   FUNCTION FC_BFS_CODE(p_plz_id VARCHAR2) RETURN INTEGER;
-   FUNCTION FC_ISNUMERIC(param VARCHAR2) RETURN BOOLEAN;
-   FUNCTION FC_TMJ(tt INTEGER, mm INTEGER, jjjj INTEGER) RETURN DATE;
-   FUNCTION FC_LEFT(str VARCHAR2, len INTEGER) RETURN VARCHAR2;
 END DBO;
 /
 
-create or replace 
-PACKAGE BODY DBO IS
+--------------------------------------------------------
+--  DDL for Package Body DBO
+--------------------------------------------------------
+
+  CREATE OR REPLACE PACKAGE BODY "ISOS"."DBO" IS
 
 FUNCTION FC_TEST_VERSICHERTENNUMMER (p_vers_nummer IN VARCHAR2)
 RETURN INTEGER
@@ -580,7 +783,7 @@ l_date DATE;
 
 BEGIN
   
-  l_date := TO_DATE(tt || '.' || mm || '.' || jjjj, 'DD.MM.JJJJ');
+  l_date := TO_DATE(tt || '.' || mm || '.' || jjjj, 'DD.MM.YYYY');
   
   return l_date;
   
@@ -631,7 +834,7 @@ BEGIN
   return SYSDATE;
 END;
 
-FUNCTION FC_ISNULLDATE(d1 DATE, d2 DATE) RETURN DATE
+FUNCTION FC_ISNULL_DATE(d1 DATE, d2 DATE) RETURN DATE
 IS
 BEGIN
   
@@ -647,8 +850,71 @@ BEGIN
   
 END;
 
+ FUNCTION FC_ERHEBUNGSJAHR(jahr INTEGER, current_datetime DATE ) RETURN INTEGER
+ IS
+  l_erhebungsjahr INTEGER;
+  BEGIN
+  
+  IF jahr >= 2000 THEN
+    l_erhebungsjahr :=  jahr;
+  ELSE
+    l_erhebungsjahr :=  EXTRACT( YEAR from current_datetime);
+  END IF;
+  
+  return l_erhebungsjahr;
+  
+ END;
+ 
+ 
+ /*--------------------------------------------------------------------------*/
+ -- Fonctions ajoutées par GOL/BFS juillet 2014
+ -- Ces fonctions doivent également être ajoutées à PlausEx/SQL Server
+ /*--------------------------------------------------------------------------*/
+ 
+ FUNCTION FC_CONCAT(str1 VARCHAR2, str2 VARCHAR2)  RETURN VARCHAR2
+IS
+BEGIN  
+  return(str1 || str2) ;  
+  
+END;
+ 
+ 
+FUNCTION FC_SUBSTR(str VARCHAR2, init INTEGER, len INTEGER)  RETURN VARCHAR2
+IS
+BEGIN
+  return substr(str, init, len) ;
+
+END; 
+
+
+
+FUNCTION FC_LENGTH(str VARCHAR2)  RETURN INTEGER
+IS
+BEGIN
+  return length(str) ;
+
+END; 
+
+
+
+FUNCTION FC_TO_INT(str VARCHAR2)  RETURN INTEGER
+IS
+BEGIN
+  IF(LENGTH(REGEXP_REPLACE (STR, '-?[0-9]*', ''))>0) THEN
+    RETURN -1 ;
+  ELSE 
+    RETURN TO_NUMBER(STR) ;
+  END IF;
+END; 
+
+ 
+ 
+ 
+ 
 END DBO;
+
 /
+
 
 create or replace 
 PACKAGE BODY do_test
@@ -2309,869 +2575,7 @@ END;
 END;
 /
 
-create or replace 
-PACKAGE BODY        "DO_PLAUSI" IS
-/* --------------------------------------------------------------------------
 
-    ISOS 6.4
-    ***********
-    Version 1.1  26.04.2013 Oliver Heiler, Dietmar Kaspers, Concevis AG
-    SP_PLAUSIS_EX eingefügt.
-
-* -------------------------------------------------------------------------- */
-
-
-/* --------------------------------------------------------------------------
-   ISOS 6.4
-   ********
-   SP_PLAUSIS_EX
-   Version 1.0   26.04.2013   Oliver Heiler, Dietmar Kaspers, Concevis AG
-   Harmonisierung zwischen ISOS und Plausex Plausiblisierung.
-   Die Flags in v_plausi b_aktiv_plausex, b_aktiv_isos steuern steuern den Gültigkeitsbereich
-   b_aktiv_plausex = 1, b_aktiv_isos = 1 =>   Tabelle v_plausi enthält analog zu Plausex inhaltlich die gleichen Regeln (nur syntaktische Anpassung zw. Oracle und SQL-Server)
-   b_aktiv_isos = 1, b_aktiv_plausex = 0 =>   Spezifische Regeln in ISOS z.B Dossierübergreifende Prüfung Dossier vermisst oder Dubletten
-   b_atkiv_isos = 0 , b_aktiv_plausex = 1 =>  Spezifische Regeln in Plausex, Prüfung der Dossier-Adresse oder Regeln mit Prüfung Versichertennummer > 0 (chiffriert in ISOS)
-  
-   Version 1.1   22.08.2013   Oliver Heiler, Concevis AG
-   Neue Parameter p_data_context = 1 für die Unterscheidung zwischen Primär- und Sekundärdaten
-   Beispiel: 
-   Der Dublettentest wird auch von der Imputation (Sekundärdaten) aufgerufen. Nur dort werden notwendige Updates durchgeführt und die Imputationstabelle befüllt
-   Während der Plausibilisierung (Primärdaten) werden nur die notwendige Dossier Stati gesetzt und die Plausitabelle befüllt
-   Parameterwert p_data_context = 1 => Primärdaten
-   Parameterwert p_data_context = 2 => Sekundärdaten
-   
-   
-* -------------------------------------------------------------------------- */
-
-
-   PROCEDURE SP_PLAUSIS_EX ( p_datenimport_id INTEGER, p_standort_id INTEGER, p_data_context INTEGER, p_debug_option INTEGER)
-   IS
- 
- 
-  
-            
-   l_selektion_id          selektion.selektion_id%TYPE := NULL;
-   debug_option            INTEGER;
-   l_plausi_statement      VARCHAR2(4000);
-   param1                  INTEGER;
-   param2                  INTEGER;
-   param3                  INTEGER;
-   l_result                INTEGER;
-   l_erhebungsjahr         INTEGER;
-    
-   BEGIN
-   
-   IF (p_data_context NOT IN (1,2)) THEN
-        raise_application_error(-20000, 'Fehler in Prozedur SP_PLAUSIS_EX aufgetreten. Ungültiger Parameter p_data_context. Der Wert muss 1 oder 2 sein. ' || sqlerrm);
-        -- added SQLERRM to find errors.
-   END IF;
-       
-   l_result := 0;
-   
-   IF p_debug_option = 1 THEN
-        DELETE dbg_test_plausi;
-        COMMIT;
-   END IF;
-
-   SELECT SELEKTION_SEQUENZ.NEXTVAL
-   INTO l_selektion_id
-   FROM DUAL;
-
-   DO_SPEZIALCODES_PKG.SP_INSERT_INTO_IMPORT_SEL(l_selektion_id, p_datenimport_id, p_standort_id);
-
-   DELETE FROM sh_dossier_plausi WHERE soz_traeger_datenimport_id = p_datenimport_id AND standort_id = p_standort_id;
-   
-   SELECT jahr INTO l_erhebungsjahr 
-   FROM soz_traeger_lieferung
-   INNER JOIN soz_traeger_datenimport
-   ON ( soz_traeger_datenimport.soz_traeger_lieferung_id = soz_traeger_lieferung.soz_traeger_lieferung_id AND 
-        soz_traeger_datenimport.standort_id = soz_traeger_lieferung.standort_id)
-   WHERE soz_traeger_datenimport.soz_traeger_datenimport_id = p_datenimport_id AND soz_traeger_datenimport.standort_id = p_standort_id;
-   
-   FOR x IN (
-
-      SELECT DISTINCT pm.plausimeldung_id, p.leistungsfilter, p.kanton_id, p.from_bedingung, p.where_bedingung, p.and_bedingung, p.proc, pm.param1, pm.param2, pm.param3, p.plausi_id
-      FROM v_plausi p
-      INNER JOIN v_plausimeldung pm ON pm.plausi_id = p.plausi_id
-      INNER JOIN (
-               SELECT DISTINCT i.leistungsfilter_id, i.kanton_id
-               FROM import_selektion i
-               WHERE i.selektion_id = l_selektion_id
-
-      ) s ON ',' || REPLACE(p.leistungsfilter, ' ', '') || ',' LIKE '%,' || s.leistungsfilter_id || ',%'
-      WHERE (p.kanton_id is null OR TO_CHAR(s.kanton_id) IN p.kanton_id)
-      AND p.b_aktiv_isos = 1
-      ORDER BY pm.plausimeldung_id
-
-   ) LOOP
-
-     IF x.proc is not NULL THEN
-     BEGIN
-
-       l_plausi_statement :=  'BEGIN ' || x.proc || ' (:sel_id, :result, :datenimport_id, :standort_id, :data_context); END;';
-        
-        IF p_debug_option = 1 THEN
-            INSERT INTO dbg_test_plausi (plausimeldung_id, sql_statement) VALUES (x.plausimeldung_id, l_plausi_statement);
-        COMMIT;
-        END IF;
-        
-       EXECUTE IMMEDIATE l_plausi_statement USING IN l_selektion_id, OUT l_result, IN p_datenimport_id, IN p_standort_id, IN p_data_context;
-      
-       IF (l_result < 0) THEN
-        raise_application_error(-20000, 'Fehler in Prozedur ' || x.proc || ' aufgetreten.'||sqlerrm);
-        -- added SQLERRM to find errors.
-       END IF;
-        
-     END;
-     ELSE
-     
-/*------------------------------------------------------------------------------
-
-*** BFS comments
-
-** Modification 30.07.2013 : 
-     
-Added "DISTINCT" to the "s.dossier" SELECT in the FROM clause of the INSERT 
-statement construction below. Since we want to make the INSERT in SH_DOSSIER_PLAUSI, the 
-combination of "dossier_id" and "plausimeldung_id" must be unique. 
-
-**  Modification 05.08.2013 :
-
-Following the propositions of release note chap. 3 for ISOS v. 6.4, we added a column
-in the "x" cursor : p.plausi_id.
-
-This addition comes for another modification at the top end of the INSERT statement below :
-"AND (sh_dossier.b_neubezuegerrecord = 1 OR '|| x.plausi_id || 'in (200050))".
-
-Plausi_id n°200050 = <Aafs-02>.
-
-
-** Modification 14.10.2013
-
-Added parenthesis around WHERE clause. 
-
- 
-  
-------------------------------------------------------------------------------*/
-     
-     BEGIN
-        l_plausi_statement := 'INSERT INTO sh_dossier_plausi (plausimeldung_id, sh_dossier_id, soz_traeger_datenimport_id, standort_id) ' ||
-            'SELECT ' || x.plausimeldung_id || ', t.dossier_id ' || ',' || p_datenimport_id || ',' || p_standort_id ||
-            ' FROM ' ||
-            '( ' ||
-            '   SELECT DISTINCT(s.dossier_id) ' ||
-            '   FROM ' || REPLACE(REPLACE(REPLACE(x.from_bedingung, '%datenimport_id%', p_datenimport_id), '%standort_id%', p_standort_id), '%erhebungsjahr%', l_erhebungsjahr)  || ' INNER JOIN import_selektion s ON (sh_dossier.sh_dossier_id = s.dossier_id) ' ||
-            '   WHERE (' || REPLACE(REPLACE(REPLACE(x.where_bedingung, '%datenimport_id%', p_datenimport_id), '%standort_id%', p_standort_id), '%erhebungsjahr%', l_erhebungsjahr) || 
-            ') ' || NVL(REPLACE(REPLACE(REPLACE(x.and_bedingung, '%datenimport_id%', p_datenimport_id), '%standort_id%', p_standort_id), '%erhebungsjahr%', l_erhebungsjahr), '') ||
-            '   AND sh_dossier.sh_leistungstyp_id IN ( SELECT sh_leistungstyp_id FROM v_sh_leistungstyp WHERE sh_leistungsfilter_id = s.leistungsfilter_id) ' ||
-            '   AND s.selektion_id = ' || l_selektion_id ||
-            '   AND '',' || REPLACE(x.leistungsfilter, ' ', '') || ','' LIKE ''%,'' || s.leistungsfilter_id || '',%''' ||
-                CASE WHEN x.kanton_id is not null THEN ' s.kanton_id IN (' || x.kanton_id || ')' ELSE '' END ||
-            '   AND (sh_dossier.b_neubezuegerrecord = 1 OR '|| x.plausi_id || ' in (200050)) )t ';
-
-  
-        IF p_debug_option = 1 THEN
-            INSERT INTO dbg_test_plausi (plausimeldung_id, sql_statement) VALUES (x.plausimeldung_id, l_plausi_statement);
-        COMMIT;
-        END IF;
-
-        IF x.param1 IS NULL THEN
-          EXECUTE IMMEDIATE l_plausi_statement;
-        ELSE
-          IF x.param2 IS NULL THEN
-            EXECUTE IMMEDIATE l_plausi_statement USING x.param1;
-          ELSE
-            IF x.param3 IS NULL THEN
-              EXECUTE IMMEDIATE l_plausi_statement USING x.param1, x.param2;
-            ELSE
-              EXECUTE IMMEDIATE l_plausi_statement USING x.param1, x.param2, x.param3;
-            END IF;
-          END IF;
-        END IF;
-     END;
-     END IF;
-
-   END LOOP;
-
-   DELETE FROM
-      import_selektion
-   WHERE
-      selektion_id = l_selektion_id;
-      
-      
-    EXCEPTION
-      WHEN OTHERS THEN
-      DELETE FROM IMPORT_SELEKTION
-      WHERE selektion_id = l_selektion_id;
-      COMMIT;
-      RAISE;
-     
-   --COMMIT;
-
-   END;
-
-   PROCEDURE SET_ROH_SH_DOSSIER(dossier_id IN INTEGER)
-
-   IS
-
-   b_problem         INTEGER;
-
-   BEGIN
-
-      SELECT DECODE(COUNT(*), 0, 0, 1) INTO b_problem
-      FROM roh_sh_dossier_plausi
-      WHERE sh_dossier_id = dossier_id
-      AND b_bearbeitet = 0;
-
-      UPDATE roh_sh_dossier
-      SET b_plausiproblem = b_problem
-      WHERE sh_dossier_id = dossier_id;
-   END;
-
-        FUNCTION F_ATTR_INTEGER_IS_UNKNOWN ( attr IN integer)
-          RETURN integer IS
-        --
-        -- Purpose: Briefly explain the functionality of the function
-        --
-        -- MODIFICATION HISTORY
-        -- Person      Date    Comments
-        -- ---------   ------  -------------------------------------------
-           -- Declare program variables as shown above
-        BEGIN
-           if (attr In (-1,-3)) Then
-        return 1;
-       Else
-        return 0;
-       End if;
-        END;
-
-        FUNCTION F_ATTR_DATE_IS_UNKNOWN ( attr IN Date)
-          RETURN integer IS
-        --
-        -- Purpose: Briefly explain the functionality of the function
-        --
-        -- MODIFICATION HISTORY
-        -- Person      Date    Comments
-        -- ---------   ------  -------------------------------------------
-           -- Declare program variables as shown above
-        BEGIN
-           Return 0;
-        END;
-
-        FUNCTION F_ATTR_VARCHAR_IS_UNKNOWN ( attr IN Varchar2)
-          RETURN integer IS
-        --
-        -- Purpose: Briefly explain the functionality of the function
-        --
-        -- MODIFICATION HISTORY
-        -- Person      Date    Comments
-        -- ---------   ------  -------------------------------------------
-           -- Declare program variables as shown above
-        BEGIN
-           if attr In ('-1','-3') Then
-                Return 1;
-            Else
-                Return 0;
-            End if;
-        END;
-
-
-
-
-        FUNCTION F_ATTR_INTEGER_IS_MISSING ( attr IN integer)
-          RETURN integer IS
-        --
-        -- Purpose: Briefly explain the functionality of the function
-        --
-        -- MODIFICATION HISTORY
-        -- Person      Date    Comments
-        -- ---------   ------  -------------------------------------------
-           -- Declare program variables as shown above
-        BEGIN
-           if (attr In (-1,-3,-9)) Then
-        return 1;
-       Else
-        return 0;
-       End if;
-        END;
-
-        FUNCTION F_ATTR_DATE_IS_MISSING ( attr IN Date)
-          RETURN integer IS
-        --
-        -- Purpose: Briefly explain the functionality of the function
-        --
-        -- MODIFICATION HISTORY
-        -- Person      Date    Comments
-        -- ---------   ------  -------------------------------------------
-           -- Declare program variables as shown above
-        BEGIN
-           Return 0;
-        END;
-
-        FUNCTION F_ATTR_VARCHAR_IS_MISSING ( attr IN Varchar2)
-          RETURN integer IS
-        --
-        -- Purpose: Briefly explain the functionality of the function
-        --
-        -- MODIFICATION HISTORY
-        -- Person      Date    Comments
-        -- ---------   ------  -------------------------------------------
-           -- Declare program variables as shown above
-        BEGIN
-           if attr In ('-1','-3','-9') Then
-                Return 1;
-            Else
-                Return 0;
-            End if;
-        END;
-
- /* --------------------------------------------------------------------------
-   ISOS 6.4
-   ********
-   Version 1.00   14.05.2013   Oliver Heiler, Concevis AG
-   Grund:         Ersetzt Fehlertest F1-9-1, neues Plausikonzept
-                  => Erzeugt Aval-05
-   Version 1.01   10.09.2013   Oliver Heiler, Concevis AG
-                  Anpassung SP_DOSSIERS_VERMISST kopierte Flustat-Dossiers ausschliessen => sh_dossier.sh_flustat_id is null
-* -------------------------------------------------------------------------- */
-
-
-PROCEDURE SP_DOSSIERS_VERMISST(p_selektion_id IN INTEGER, p_result OUT INTEGER, p_datenimport_id IN INTEGER, p_standort_id IN INTEGER, p_data_context IN INTEGER)
-  IS
-  l_table VARCHAR(20);
-  l_stmt  VARCHAR(1024);
-  l_plausi_nr v_plausi.alpha_code%TYPE;
-  l_plausimeldung_id v_plausimeldung.plausimeldung_id%TYPE;
-  l_jahr INTEGER;
-  
-  BEGIN
- 
-  l_plausi_nr := 'Aval-05';
-  
-  l_stmt := 
-    ' INSERT INTO sh_dossier_plausi (
-      sh_dossier_id, plausimeldung_id, soz_traeger_datenimport_id, standort_id)
-      SELECT
-      :dossid,
-      :plausimeldung_id,
-      :soz_traeger_datenimport_id,
-      :standort_id
-   FROM sh_dossier d
-   WHERE d.sh_dossier_id = :dossid';
-  
-  BEGIN
-     
-     SELECT DISTINCT pm.plausimeldung_id
-     INTO l_plausimeldung_id 
-     FROM v_plausi p
-     INNER JOIN v_plausimeldung pm ON (pm.plausi_id = p.plausi_id)
-     WHERE p.alpha_code = l_plausi_nr;
-     
-     EXCEPTION
-        WHEN NO_DATA_FOUND THEN
-            BEGIN
-              RAISE_APPLICATION_ERROR(-20001, 'Es gibt keine Plausi-Regel mit der Nummer ' || l_plausi_nr);
-              p_result := -1;
-            END;
-  END;
-        
- -- SELECT DISTINCT jahr INTO l_jahr FROM sh_dossier
-  --WHERE sh_dossier_id IN ( SELECT dossier_id FROM import_selektion WHERE selektion_id = p_selektion_id);
-  
-  SELECT jahr INTO l_jahr 
-  FROM soz_traeger_lieferung
-  INNER JOIN soz_traeger_datenimport
-    ON ( soz_traeger_datenimport.soz_traeger_lieferung_id = soz_traeger_lieferung.soz_traeger_lieferung_id AND 
-         soz_traeger_datenimport.standort_id = soz_traeger_lieferung.standort_id)
-  WHERE soz_traeger_datenimport.soz_traeger_datenimport_id = p_datenimport_id AND  soz_traeger_datenimport.standort_id = p_standort_id;
-  
-  FOR x IN (
-
-SELECT DISTINCT t_alias.sh_dossier_id AS dossid,
-                t_alias.soz_traeger_lieferung_id AS lieferid,
-                t_alias.soz_traeger_registration_id AS regid
-FROM (
-     SELECT /*+ ordered use_hash( SH_DOSSIER , ANTRAGSTELLER , t, ANTRAGSTELLER_ALBV, ue_person_albv, V_SH_ZUSTAENDIGKEIT ) */ dos.sh_dossier_id             AS sh_dossier_id,
-             dos.sozialleistungstraeger_id AS sozid,
-             ant.versichertennummer        AS vers_nr,
-             dos.soz_traeger_lieferung_id,
-             dos.soz_traeger_datenimport_id,
-             dos.standort_id,
-             dos.soz_traeger_registration_id,
-             lg.sh_leistungsgruppe_id as leistungsgruppe
-      FROM SH_DOSSIER dos
-      INNER JOIN v_sh_zustaendigkeit t                  ON (t.sozialleistungstraeger_id = dos.sozialleistungstraeger_id
-                                                          AND t.gemeinde_id = dos.gemeinde_id
-                                                          AND t.sh_leistungstyp_id = dos.sh_leistungstyp_id)
-      INNER JOIN ANTRAGSTELLER ant                    ON (dos.sh_dossier_id = ant.sh_dossier_id)
-      INNER JOIN leistungsgruppe_typ lg ON (dos.sh_leistungstyp_id = lg.sh_leistungstyp_id)
-      INNER JOIN v_sh_leistungsgruppe vlg ON (vlg.sh_leistungsgruppe_id = lg.sh_leistungsgruppe_id)
-      LEFT OUTER JOIN ANTRAGSTELLER_ALBV albv_ant     ON (albv_ant.sh_dossier_id = dos.sh_dossier_id)
-      LEFT OUTER JOIN ue_person_albv albv_ue ON (albv_ue.sh_dossier_id = dos.sh_dossier_id)
-      WHERE dos.jahr = l_jahr - 1
-        AND dos.soz_traeger_lieferung_id = (
-                                            SELECT soz_traeger_lieferung_id
-                                            FROM SOZ_TRAEGER_LIEFERUNG
-                                            WHERE sozialleistungstraeger_id = (
-                                                                               SELECT sozialleistungstraeger_id
-                                                                               FROM SOZ_TRAEGER_LIEFERUNG,
-                                                                                    SOZ_TRAEGER_DATENIMPORT
-                                                                               WHERE SOZ_TRAEGER_DATENIMPORT.soz_traeger_datenimport_id = p_datenimport_id
-                                                                                 AND SOZ_TRAEGER_DATENIMPORT.standort_id = p_standort_id
-                                                                                 AND SOZ_TRAEGER_DATENIMPORT.soz_traeger_lieferung_id = SOZ_TRAEGER_LIEFERUNG.soz_traeger_lieferung_id
-                                                                                 AND SOZ_TRAEGER_DATENIMPORT.standort_id = SOZ_TRAEGER_LIEFERUNG.standort_id
-                                                                              )
-                                            AND jahr = l_jahr - 1
-                                           )
-        AND dos.standort_id = p_standort_id
-        AND to_number(to_char(t.dat_von, 'YYYY')) <= l_jahr
-        AND to_number(to_char(t.dat_bis, 'YYYY')) >= l_jahr
-        AND dos.sh_leistungstyp_id IN (1,2,3,4,5,21,22,23,25,26,32,33,34,35,36,37)
-        AND dos.b_neubezuegerrecord = 1
-        AND ant.versichertennummer NOT LIKE '%-%'
-        AND dos.dossier_status_id <> 5
-        AND (((dos.sh_leistungstyp_id = 25 AND ((albv_ant.b_bezug_stichtag = 1 OR albv_ue.b_bezug_stichtag = 1)
-               AND (EXTRACT(YEAR FROM albv_ant.dat_letzte_zahlung) = 9999 OR EXTRACT(YEAR FROM albv_ue.dat_letzte_zahlung) = 9999)))
-              OR
-              (dos.sh_leistungstyp_id <> 25 AND ((dos.b_bezug_stichtag = 1) AND (EXTRACT(YEAR FROM dos.dat_letzte_zahlung) = 9999))))
-             OR
-             ((dos.sh_leistungstyp_id <> 25 AND (dos.dat_letzte_zahlung BETWEEN TO_DATE('01.07.' || TO_CHAR(l_jahr-1),'DD.MM.YYYY') AND TO_DATE('31.12.' || TO_CHAR(l_jahr-1),'DD.MM.YYYY')))
-              OR (dos.sh_leistungstyp_id = 25 AND ((albv_ant.dat_letzte_zahlung BETWEEN TO_DATE('01.07.' || TO_CHAR(l_jahr-1),'DD.MM.YYYY') AND TO_DATE('31.12.' || TO_CHAR(l_jahr-1),'DD.MM.YYYY'))
-                OR (albv_ue.dat_letzte_zahlung BETWEEN TO_DATE('01.07.' || TO_CHAR(l_jahr-1),'DD.MM.YYYY') AND TO_DATE('31.12.' || TO_CHAR(l_jahr-1),'DD.MM.YYYY'))))))
-     ) t_alias
-WHERE NOT EXISTS (
-                  SELECT 1
-                  FROM ROH_SH_DOSSIER dos
-                  INNER JOIN ROH_ANTRAGSTELLER ant ON (dos.sh_dossier_id = ant.sh_dossier_id)
-                  INNER JOIN leistungsgruppe_typ lg ON (dos.sh_leistungstyp_id = lg.sh_leistungstyp_id)
-                  INNER JOIN v_sh_leistungsgruppe vlg ON (vlg.sh_leistungsgruppe_id = lg.sh_leistungsgruppe_id)
-                  WHERE dos.jahr = l_jahr
-                    AND dos.soz_traeger_datenimport_id = p_datenimport_id
-                    AND dos.standort_id = p_standort_id
-                    AND t_alias.leistungsgruppe = lg.sh_leistungsgruppe_id
-                    AND dos.b_neubezuegerrecord = 1
-                    AND t_alias.sozid = dos.sozialleistungstraeger_id
-                    AND (
-                         t_alias.vers_nr = ant.versichertennummer
-                         AND t_alias.vers_nr NOT LIKE '%-%'
-                         AND ant.versichertennummer NOT LIKE '%-%'
-                        )
-                 )
-  )
-  LOOP
-            EXECUTE IMMEDIATE l_stmt USING x.dossid, l_plausimeldung_id, p_datenimport_id, p_standort_id, x.dossid;
-
-  END LOOP;
-  
-  p_result := 0;
-  
-   EXCEPTION
-        WHEN OTHERS THEN
-            BEGIN
-              p_result := -1;
-              
-            END;
-  END;
-  
-  /* --------------------------------------------------------------------------
-   ISOS 6.4
-   ********
-   Version 1.00   08.05.2013   Oliver Heiler, Concevis AG
-   Grund:         Ersetzt Fehlertest F6-1-11, neues Plausikonzept
-                  => Erzeugt Afinasi-30
-   Version 2.00   27.11.2013  Oliver Heiler, Concevis AG
-   Grund:         Ist nun eine Imputationsregel und basiert nun auf den Sekundärdaten
-* -------------------------------------------------------------------------- */
-PROCEDURE SP_FLUSTAT_COPY_CHECK(p_selektion_id IN INTEGER, p_result OUT INTEGER, p_datenimport_id IN INTEGER, p_standort_id IN INTEGER, p_data_context IN INTEGER)
-IS
-
-l_count INTEGER;
-l_plausimeldung_id INTEGER;
-l_plausi_nr v_plausi.alpha_code%TYPE;
-l_sql_stmt VARCHAR2(1024);
-l_update_stmt VARCHAR2(256);
-l_update_reihenfolge INTEGER;
-l_alter_wert VARCHAR2(3);
-l_dummy INTEGER;
-
-BEGIN
-
- l_plausi_nr := 'Afinasi-30';
-
- l_sql_stmt :=
-   'INSERT INTO sh_dossier_imputation (
-      sh_dossier_id, plausimeldung_id, alt_wert, neue_wert, befehl)
-      VALUES
-      ( :dossier_id, :plausimeldung_id, :alter_wert, :neuer_wert, :befehl) ';
-
- l_update_stmt := 'UPDATE sec_sh_dossier SET dossier_status_id = 5 WHERE sh_dossier_id = :dossier_id';
- 
- l_dummy := NULL;
- 
- BEGIN
-
-     SELECT DISTINCT pm.plausimeldung_id
-     INTO l_plausimeldung_id 
-     FROM v_plausi p
-     INNER JOIN v_plausimeldung pm ON (pm.plausi_id = p.plausi_id)
-     WHERE p.alpha_code = l_plausi_nr;
-     
-        EXCEPTION
-          WHEN NO_DATA_FOUND THEN
-              RAISE_APPLICATION_ERROR(-20001, 'Es gibt keine Plausi-Regel mit der Nummer ' || l_plausi_nr);
- END;
-     -- Ermittlung der kopierten Dossiers innerhalb der Lieferung
-     FOR x IN
-    (
-        SELECT d.sh_dossier_id, a.versichertennummer, d.jahr, d.soz_traeger_datenimport_id FROM sec_sh_dossier d
-        INNER JOIN sec_antragsteller a ON (a.sh_dossier_id = d.sh_dossier_id)
-        INNER JOIN import_sec_selektion s ON (s.dossier_id = d.sh_dossier_id)
-        WHERE s.selektion_id = p_selektion_id
-        AND d.sh_flustat_id is not null
-        AND d.dossier_status_id <> 5
-    )
-    LOOP
-
-        -- Prüfen, ob für das kopierte Dossier ausserhalb der Lieferung ein Dublette gibt
-        -- mit einem Antragsteller mit Aufenthaltsstatus 14 oder 15
-        l_count := 0;
-
-        FOR y IN
-        (
-             SELECT d.sh_dossier_id, a.versichertennummer FROM sec_sh_dossier d
-             INNER JOIN sec_antragsteller a ON (a.sh_dossier_id = d.sh_dossier_id)
-             WHERE d.jahr = x.jahr AND a.aufenthaltsstatus_id IN (14,15)
-             AND x.versichertennummer = a.versichertennummer
-             AND d.dossier_status_id <> 5
-             AND d.soz_traeger_datenimport_id <> x.soz_traeger_datenimport_id
-        )
-        LOOP
-            l_count := l_count + 1;
-
-            -- Imputationsmeldung für das kopierte Dossier schreiben
-            IF l_count = 1 THEN
-                 SELECT TO_CHAR(dossier_status_id) INTO l_alter_wert FROM sec_sh_dossier WHERE sh_dossier_id = x.sh_dossier_id; 
-                 EXECUTE IMMEDIATE l_update_stmt USING x.sh_dossier_id;
-                 EXECUTE IMMEDIATE l_sql_stmt
-                 USING x.sh_dossier_id, l_plausimeldung_id, l_alter_wert, '5', l_update_stmt;
-            END IF;
-
-            -- Imputationsmeldung für die gefundenen Dubletten schreiben
-            EXECUTE IMMEDIATE l_sql_stmt
-            USING y.sh_dossier_id, l_plausimeldung_id,  l_dummy, l_dummy, l_dummy;
-
-        END LOOP;
-
-    END LOOP;
-  
-END;
-
-
-
-PROCEDURE SP_DUMMY(p_selektion_id IN INTEGER, p_result OUT INTEGER, p_datenimport_id IN INTEGER, p_standort_id IN INTEGER, p_data_context IN INTEGER)
-IS
-BEGIN
-
-  p_result := 0;
-
-END;
-
-
-
-
---Ajout IMPUTATIONS STG
-
-
-
-/* --------------------------------------------------------------------------
-   ISOS 6.4
-   ********
-   SP_IMPUTATIONS
-   Version 1.0   22.05.2013   STG
-   Procédure principale qui pilote les imputations. Les imputations sont reprise de la table v_plausi
-   Version 1.1   13.06.2013   Oliver Heiler, Concevis AG
-   Erste lauffähige Implementation
-   Version 1.2   19.11.2013   Oliver Heiler, Concevis AG
-   Neue Tabelle import_sec_selektion => Durch Flüstat-Kopien entstehen neue sh_dossier_id, welche nicht in den Primärdaten
-   vorhanden sind, Tabelle import_selektion kann hier nicht mehr verwendet werden, da diese Tabelle sh_dossier.sh_dossier 
-   referenziert. Die neue Tabelle import_sec_selektion referenziert nun sec_sh_dossier.sh_dossier_id
-* -------------------------------------------------------------------------- */
-
-   PROCEDURE SP_IMPUTATION_EX ( p_datenimport_id INTEGER, p_standort_id INTEGER, p_debug_option INTEGER)
-   IS
-
-   l_selektion_id          selektion.selektion_id%TYPE := NULL;
-   debug_option            INTEGER;
-   l_imputation_statement  VARCHAR2(4000);
-   l_selection_dossiers    VARCHAR2(4000);
-   param1                  INTEGER;
-   param2                  INTEGER;
-   param3                  INTEGER;
-   l_result                INTEGER;
-   l_dossier_id            INTEGER;
-   l_alter_wert            VARCHAR(32);
-   l_neuer_wert            VARCHAR(32);
-   l_dbg_statement         VARCHAR(512);
-   l_erhebungsjahr         INTEGER;
-   l_data_context          INTEGER;
-   l_plausimeldung_id      INTEGER;
-   
-   BEGIN
-    
-   l_result := 0;
-   l_data_context := DO_TEST_DBL_2.C_SEKUNDAERDATEN;
-   
-   IF p_debug_option = 1 THEN
-        DELETE dbg_test_imputation;
-        COMMIT;
-   END IF;
-
-   SELECT SELEKTION_SEQUENZ.NEXTVAL
-   INTO l_selektion_id
-   FROM DUAL;
-
-      
-   -- Rempli la table import_selektion --------------
-   INSERT INTO
-   import_sec_selektion (selektion_id, dossier_id, leistungsfilter_id, kanton_id )
-   SELECT
-   l_selektion_id, d.sh_dossier_id, l.sh_leistungsfilter_id, g.kanton_id
-   FROM sec_sh_dossier d, v_sh_leistungstyp l, v_gemeinde g
-   WHERE d.sh_leistungstyp_id = l.sh_leistungstyp_id
-   AND d.soz_traeger_datenimport_id = p_datenimport_id
-   AND d.standort_id = p_standort_id
-   AND d.gemeinde_id = g.gemeinde_id;
-   
-   --------------------------------------------------
-   SELECT jahr INTO l_erhebungsjahr 
-   FROM soz_traeger_lieferung
-   INNER JOIN soz_traeger_datenimport
-   ON ( soz_traeger_datenimport.soz_traeger_lieferung_id = soz_traeger_lieferung.soz_traeger_lieferung_id AND 
-        soz_traeger_datenimport.standort_id = soz_traeger_lieferung.standort_id)
-   WHERE soz_traeger_datenimport.soz_traeger_datenimport_id = p_datenimport_id AND soz_traeger_datenimport.standort_id = p_standort_id;
-   
- --  Ne pas lancer cette partie, on garde la trace des imputations
- --  DELETE FROM sh_dossier_plausi WHERE soz_traeger_datenimport_id = p_datenimport_id AND standort_id = p_standort_id;
- --  19.11.2013 : Remplacement de "proc" par "update_proc"
-   FOR x IN (
-
-      SELECT DISTINCT pm.plausimeldung_id, p.leistungsfilter, p.kanton_id, p.from_bedingung, p.where_bedingung, p.and_bedingung,
-                      p.select_wert_vor_update, p.update_bedingung, p.update_reihenfolge,
-                      p.update_proc, pm.param1, pm.param2, pm.param3, p.plausi_id
-      FROM v_plausi p
-      INNER JOIN v_plausimeldung pm ON pm.plausi_id = p.plausi_id
-      INNER JOIN (
-               SELECT DISTINCT i.leistungsfilter_id, i.kanton_id
-               FROM import_sec_selektion i
-               WHERE i.selektion_id = l_selektion_id
-
-      ) s ON ',' || REPLACE(p.leistungsfilter, ' ', '') || ',' LIKE '%,' || s.leistungsfilter_id || ',%'
-      
-      WHERE (p.kanton_id is null OR  TO_CHAR(s.kanton_id) IN p.kanton_id)
-      
-      AND p.b_aktiv_isos_imputation = 1
-      ORDER BY p.UPDATE_REIHENFOLGE
-      
-
-   ) LOOP
-      
-     l_plausimeldung_id := x.plausimeldung_id;
-     
-     IF x.update_proc is not NULL THEN
-     BEGIN
-
-      l_imputation_statement :=  'BEGIN ' || x.update_proc || '(:sel_id, :result, :datenimport_id, :standort_id, :data_context); END;';
-    
-      IF p_debug_option = 1 THEN
-        INSERT INTO dbg_test_imputation (plausimeldung_id, sql_statement) VALUES (x.plausimeldung_id, l_imputation_statement); --ajout autres champs journalisation
-        COMMIT;
-      END IF;
-     
-      EXECUTE IMMEDIATE l_imputation_statement USING IN l_selektion_id, OUT l_result, IN p_datenimport_id, IN p_standort_id, IN l_data_context;
-             
-      IF (l_result < 0) THEN
-          raise_application_error(-20000, 'Fehler in Prozedur' || x.update_proc || ' aufgetreten.');
-      END IF;
-        
-     END;
-     ELSE
-     
-/*------------------------------------------------------------------------------
-
-*** BFS comments
-
-** Modification 30.07.2013 : 
-     
-Added "DISTINCT" to the "s.dossier" SELECT in the FROM clause of the INSERT 
-statement construction below. Since we want to make the INSERT in SH_DOSSIER_IMPUTATION, the 
-combination of "dossier_id" and "plausimeldung_id" must be unique. 
-
-**  Modification 05.08.2013 :
-
-Following the propositions of release note chap. 3 for ISOS v. 6.4, we added a column
-in the "x" cursor : p.plausi_id.
-
-This addition comes for another modification at the top end of the INSERT statement below :
-"AND (sh_dossier.b_neubezuegerrecord = 1 OR '|| x.plausi_id || 'in (200050))".
-
-Plausi_id n°200050 = <Aafs-02>.
-
-**STG  Modification 14.10.2013 :
-Lower eingefügt fur Teil des konvertierung der Tabellen-Namen vom Primärdaten auf Tabellen-Namen Sekondärdaten
-   
-------------------------------------------------------------------------------*/
-     
-     
-     
-     BEGIN
-            l_selection_dossiers:=    
-            '   SELECT DISTINCT(s.dossier_id) ' ||
-            '   FROM ' || REPLACE(REPLACE(REPLACE(x.from_bedingung, '%datenimport_id%', p_datenimport_id), '%standort_id%', p_standort_id), '%erhebungsjahr%', l_erhebungsjahr) || ' INNER JOIN import_sec_selektion s ON (sh_dossier.sh_dossier_id = s.dossier_id) ' ||
-            '   WHERE (' || REPLACE(REPLACE(REPLACE(x.where_bedingung, '%datenimport_id%', p_datenimport_id), '%standort_id%', p_standort_id), '%erhebungsjahr%', l_erhebungsjahr) || 
-            ') ' || NVL(REPLACE(REPLACE(REPLACE(x.and_bedingung, '%datenimport_id%', p_datenimport_id), '%standort_id%', p_standort_id), '%erhebungsjahr%', l_erhebungsjahr), '') ||
-            '   AND sh_dossier.sh_leistungstyp_id IN ( SELECT sh_leistungstyp_id FROM v_sh_leistungstyp WHERE sh_leistungsfilter_id = s.leistungsfilter_id) ' ||
-            '   AND s.selektion_id = ' || l_selektion_id ||
-            '   AND '',' || REPLACE(x.leistungsfilter, ' ', '') || ','' LIKE ''%,'' || s.leistungsfilter_id || '',%''' ||
-                CASE WHEN x.kanton_id is not null THEN ' s.kanton_id IN (' || x.kanton_id || ')' ELSE '' END  ||
-            '   AND (sh_dossier.b_neubezuegerrecord = 1 OR '|| x.plausi_id || 'in (200050)) ';
-      
-            l_selection_dossiers := replace(replace(lower(l_selection_dossiers), 'antragsteller','sec_antragsteller'),'sec_antragsteller_id','antragsteller_id');
-            l_selection_dossiers := replace(replace(lower(l_selection_dossiers), 'hh_person','sec_hh_person'),'sec_hh_person_id','hh_person_id');
-            l_selection_dossiers := replace(replace(lower(l_selection_dossiers), 'sh_ausgabe','sec_sh_ausgabe'),'sec_sh_ausgabe_id','sh_ausgabe_id');
-            l_selection_dossiers := replace(replace(lower(l_selection_dossiers), 'sh_auszahlung_monat','sec_sh_auszahlung_monat'),'sec_sh_auszahlung_monat_id','sh_auszahlung_monat_id');
-            l_selection_dossiers := replace(replace(lower(l_selection_dossiers), 'sh_bedarf','sec_sh_bedarf'),'sec_sh_bedarf_id','sh_bedarf_id');
-            l_selection_dossiers := replace(replace(lower(l_selection_dossiers), 'sh_dossier','sec_sh_dossier'),'sec_sh_dossier_id','sh_dossier_id');
-            l_selection_dossiers := replace(replace(lower(l_selection_dossiers), 'sh_massnahme','sec_massnahme'),'sec_sh_massnahme_id','sh_massnahme_id');
-            l_selection_dossiers := replace(replace(lower(l_selection_dossiers), 'sh_merkmal','sec_merkmal'),'sec_sh_merkmal_id','sh_merkmal_id');
-            l_selection_dossiers := replace(replace(lower(l_selection_dossiers), 'sh_wbsl_einkommen','sec_sh_wbsl_einkommen'),'sec_sh_wbsl_einkommen_id','sh_wbsl_einkommen_id');
-            l_selection_dossiers := replace(replace(lower(l_selection_dossiers), 'sh_zusatzeinkommen','sec_sh_zusatzeinkommen'),'sec_sh_zusatzeinkommen_id','sh_zusatzeinkommen_id'); 
-            l_selection_dossiers := replace(replace(lower(l_selection_dossiers), 'ue_person','sec_ue_person'),'sec_ue_person_id','ue_person_id');
-            
-            -- TODO: weitere Umbenennungen z.b. VW_NichtLeerePersonen => VW_SEC_NichtLeerePersonen etc.
-            
-            l_dbg_statement := NULL;
-            
-            DECLARE
-            TYPE PlausiCur IS REF CURSOR; 
-            plausiTyp   PlausiCur;  
-            
-            BEGIN
-             IF x.param1 IS NULL THEN
-                 OPEN plausiTyp FOR l_selection_dossiers;
-              ELSE
-                 IF x.param2 IS NULL THEN 
-                    OPEN plausiTyp FOR l_selection_dossiers USING x.param1;
-                  ELSE
-                      IF x.param3 IS NULL THEN
-                         OPEN plausiTyp FOR l_selection_dossiers USING x.param1, x.param2;
-                      ELSE
-                          OPEN plausiTyp FOR l_selection_dossiers USING x.param1, x.param2, x.param3;
-                      END IF;
-                   END IF;
-              END IF;
-              
-              LOOP
-              FETCH plausiTyp INTO l_dossier_id;  
-              EXIT WHEN plausiTyp%NOTFOUND;
-
-              IF x.select_wert_vor_update is not null THEN
-              BEGIN
-                  IF x.param1 IS NULL THEN
-                    BEGIN
-                      EXECUTE IMMEDIATE x.select_wert_vor_update INTO l_alter_wert USING l_dossier_id;
-                      EXECUTE IMMEDIATE x.update_bedingung USING l_dossier_id;
-                      EXECUTE IMMEDIATE x.select_wert_vor_update INTO l_neuer_wert USING l_dossier_id;
-                      EXCEPTION
-                      WHEN NO_DATA_FOUND THEN
-                        l_alter_wert := NULL;
-                        l_neuer_wert := NULL;
-                    END;
-                  ELSE
-                    IF x.param2 IS NULL THEN
-                       BEGIN
-                        EXECUTE IMMEDIATE x.select_wert_vor_update INTO l_alter_wert USING l_dossier_id, x.param1;
-                        EXECUTE IMMEDIATE x.update_bedingung USING l_dossier_id, x.param1;
-                        EXECUTE IMMEDIATE x.select_wert_vor_update INTO l_neuer_wert USING l_dossier_id, x.param1;
-                        EXCEPTION
-                        WHEN NO_DATA_FOUND THEN
-                          l_alter_wert := NULL;
-                          l_neuer_wert := NULL;
-                       END;
-                    ELSE
-                      IF x.param3 IS NULL THEN
-                        BEGIN
-                          EXECUTE IMMEDIATE x.select_wert_vor_update INTO l_alter_wert USING l_dossier_id, x.param1, x.param2;
-                          EXECUTE IMMEDIATE x.update_bedingung USING l_dossier_id, x.param1, x.param2;
-                          EXECUTE IMMEDIATE x.select_wert_vor_update INTO l_neuer_wert USING l_dossier_id, x.param1, x.param2;
-                          EXCEPTION
-                          WHEN NO_DATA_FOUND THEN
-                            l_alter_wert := NULL;
-                            l_neuer_wert := NULL;
-                        END;
-                      ELSE
-                        BEGIN
-                          EXECUTE IMMEDIATE x.select_wert_vor_update INTO l_alter_wert USING l_dossier_id, x.param1, x.param2, x.param3;
-                          EXECUTE IMMEDIATE x.update_bedingung USING l_dossier_id, x.param1, x.param2, x.param3;
-                          EXECUTE IMMEDIATE x.select_wert_vor_update INTO l_neuer_wert USING l_dossier_id, x.param1, x.param2, x.param3;
-                          EXCEPTION
-                          WHEN NO_DATA_FOUND THEN
-                            l_alter_wert := NULL;
-                            l_neuer_wert := NULL;
-                        END;
-                      END IF;
-                    END IF;
-                  END IF;
-                  
-                  l_dbg_statement := REPLACE(x.update_bedingung, ':doss_id', l_dossier_id);
-                  l_dbg_statement := REPLACE(l_dbg_statement, ':param1', x.param1);
-                  l_dbg_statement := REPLACE(l_dbg_statement, ':param2', x.param2);
-                  l_dbg_statement := REPLACE(l_dbg_statement, ':param3', x.param3);
-                  
-                  IF p_debug_option = 1 THEN
-                    INSERT INTO dbg_test_imputation (plausimeldung_id, sql_statement) VALUES (x.plausimeldung_id, l_dbg_statement);
-                    COMMIT;
-                  END IF;
-        
-                  INSERT INTO sh_dossier_imputation (sh_dossier_id, plausimeldung_id, variable, alt_wert, neue_wert, befehl, update_reihenfolge)
-                  VALUES (l_dossier_id, x.plausimeldung_id, NULL, l_alter_wert, l_neuer_wert, l_dbg_statement, x.update_reihenfolge);
-              END;    
-              END IF;
-              END LOOP;
-              CLOSE plausiTyp;
-              
-            END;
-     END;
-     END IF;
-
-   END LOOP;
-
-   DELETE FROM
-      import_sec_selektion
-   WHERE
-      selektion_id = l_selektion_id;
-
-    EXCEPTION
-      WHEN OTHERS THEN
-      DELETE FROM import_sec_selektion
-      WHERE selektion_id = l_selektion_id;
-      DBG_TEST_IMPUTATION (l_plausimeldung_id, l_selection_dossiers);
-      COMMIT;
-      RAISE;
-
-   --COMMIT;
-
-   END;
-   
-   PROCEDURE DBG_TEST_IMPUTATION ( p_plausimeldung_id INTEGER, p_sql_statement VARCHAR2)
-   IS
-   PRAGMA  AUTONOMOUS_TRANSACTION;
-   BEGIN
-      DELETE dbg_test_imputation;
-      INSERT INTO dbg_test_imputation (plausimeldung_id, sql_statement) VALUES (p_plausimeldung_id, p_sql_statement);
-      COMMIT;
-   END;
-   
-END;
 
 /
 create or replace 
@@ -6069,3 +5473,11 @@ END;
 
 END;
 /
+
+
+---- ////////// A jouer sur le schéma diso/tiso/piso_import : ////////////////
+CREATE SYNONYM ISOS_IMPORT.roh_ue_person_albv FOR isos.roh_ue_person_albv;
+CREATE SYNONYM ISOS_IMPORT.ue_person_albv FOR isos.ue_person_albv;
+CREATE SYNONYM ISOS_IMPORT.sec_ue_person_albv FOR isos.sec_ue_person_albv;
+
+
