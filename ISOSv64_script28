@@ -133,7 +133,7 @@ ALTER TABLE SEC_UE_PERSON_EINKOMMEN  ADD VERSION INTEGER DEFAULT 0;
 ALTER TABLE SEC_UE_PERSON_ERWERBSIT  ADD VERSION INTEGER DEFAULT 0;
 
 
-
+/*
     UPDATE      V_PLAUSI 
        SET      AND_BEDINGUNG = 'AND sh_dossier.version = '||regexp_replace(FROM_BEDINGUNG, '^(.*)(INNER JOIN )(.*)( ON)(.*)', '\3')||'.version' 
      WHERE      TRIM(REGEXP_REPLACE(FROM_BEDINGUNG, '^(.*)(INNER JOIN )(.*)( ON)(.*)', '\3')) IN (
@@ -147,7 +147,6 @@ ALTER TABLE SEC_UE_PERSON_ERWERBSIT  ADD VERSION INTEGER DEFAULT 0;
                       'sh_ausgabe',
                       'sh_auszahlung_monat',
                       'sh_bedarf',
-                      'sh_dossier',
                       'sh_dossier_plausi',
                       'sh_massnahme',
                       'sh_merkmal',
@@ -183,8 +182,12 @@ ALTER TABLE SEC_UE_PERSON_ERWERBSIT  ADD VERSION INTEGER DEFAULT 0;
     UPDATE      V_PLAUSI 
        SET      AND_BEDINGUNG = 'AND sh_dossier.version = p.version' 
      WHERE      PLAUSI_ID = 2181  ;
-
-/*     
+     
+    UPDATE      V_PLAUSI 
+       SET      AND_BEDINGUNG = 'AND sh_dossier.version = nlp.version' 
+     WHERE      PLAUSI_ID IN (80,1123) ;
+   
+       
     SELECT      plausi_id,
                 from_bedingung,
                 and_bedingung
@@ -199,6 +202,132 @@ ALTER TABLE SEC_UE_PERSON_ERWERBSIT  ADD VERSION INTEGER DEFAULT 0;
                 
                 
 */
+
+
+
+--------------------------------------------------------
+--  DDL for View VW_NICHTLEEREANTRAGSTELLER
+--------------------------------------------------------
+
+  CREATE OR REPLACE FORCE VIEW "ISOS"."VW_NICHTLEEREANTRAGSTELLER" ("SH_DOSSIER_ID", "UE_PERSON_ID", "ANTRAGSART_ID", "BETRAG_ZUGESPROCHEN", "DAT_ERSTE_AUSZAHLUNG", "BETRAG_TOT_AUSZAHLUNGEN", "B_BEZUG_STICHTAG", "DAT_LETZTE_ZAHLUNG", "VERSION") AS 
+  SELECT aal.sh_dossier_id, NULL AS ue_person_id, aal.antragsart_id, aal.betrag_zugesprochen, aal.dat_erste_auszahlung, aal.betrag_tot_auszahlungen,
+aal.b_bezug_stichtag, aal.dat_letzte_zahlung, aal.version
+FROM antragsteller_albv aal
+RIGHT OUTER JOIN
+antragsteller a ON a.sh_dossier_id = aal.sh_dossier_id 
+WHERE     (aal.antragsart_id >= 0) OR
+          (aal.betrag_zugesprochen > 0) OR
+          (aal.dat_erste_auszahlung < TO_DATE('01.01.9998', 'DD.MM.YYYY')) OR
+          (aal.betrag_tot_auszahlungen > 0) OR
+          (aal.b_bezug_stichtag >= 0) OR
+          (aal.dat_letzte_zahlung < TO_DATE('01.01.9998', 'DD.MM.YYYY'));
+
+
+
+
+--------------------------------------------------------
+--  DDL for View VW_NICHTLEEREUEPERSONEN
+--------------------------------------------------------
+
+  CREATE OR REPLACE FORCE VIEW "ISOS"."VW_NICHTLEEREUEPERSONEN" ("SH_DOSSIER_ID", "UE_PERSON_ID", "ANTRAGSART_ID", "BETRAG_ZUGESPROCHEN", "DAT_ERSTE_AUSZAHLUNG", "BETRAG_TOT_AUSZAHLUNGEN", "B_BEZUG_STICHTAG", "DAT_LETZTE_ZAHLUNG", "VERSION") AS 
+  SELECT upal.sh_dossier_id, upal.ue_person_id, upal.antragsart_id, upal.betrag_zugesprochen, upal.dat_erste_auszahlung, upal.betrag_tot_auszahlungen,
+upal.b_bezug_stichtag, upal.dat_letzte_zahlung, upal.version
+FROM ue_person_albv upal
+RIGHT OUTER JOIN
+ue_person up ON (up.sh_dossier_id = upal.sh_dossier_id AND up.ue_person_id = upal.ue_person_id)
+WHERE     (upal.antragsart_id >= 0) OR
+          (upal.betrag_zugesprochen > 0) OR
+          (upal.dat_erste_auszahlung < TO_DATE('01.01.9998', 'DD.MM.YYYY')) OR
+          (upal.betrag_tot_auszahlungen > 0) OR
+          (upal.b_bezug_stichtag >= 0) OR
+          (upal.dat_letzte_zahlung < TO_DATE('01.01.9998', 'DD.MM.YYYY'));
+
+
+
+--------------------------------------------------------
+--  DDL for View VW_NICHTLEEREPERSONEN
+--------------------------------------------------------
+
+  CREATE OR REPLACE FORCE VIEW "ISOS"."VW_NICHTLEEREPERSONEN" ("SH_DOSSIER_ID", "UE_PERSON_ID", "ANTRAGSART_ID", "BETRAG_ZUGESPROCHEN", "DAT_ERSTE_AUSZAHLUNG", "BETRAG_TOT_AUSZAHLUNGEN", "B_BEZUG_STICHTAG", "DAT_LETZTE_ZAHLUNG", "VERSION") AS 
+  SELECT     SH_DOSSIER_ID, UE_PERSON_ID, ANTRAGSART_ID, BETRAG_ZUGESPROCHEN, DAT_ERSTE_AUSZAHLUNG,
+           BETRAG_TOT_AUSZAHLUNGEN, B_BEZUG_STICHTAG, DAT_LETZTE_ZAHLUNG, VERSION
+FROM       VW_NichtLeereAntragsteller
+UNION
+SELECT     SH_DOSSIER_ID, UE_PERSON_ID, ANTRAGSART_ID, BETRAG_ZUGESPROCHEN, DAT_ERSTE_AUSZAHLUNG,
+           BETRAG_TOT_AUSZAHLUNGEN, B_BEZUG_STICHTAG, DAT_LETZTE_ZAHLUNG, VERSION
+FROM       VW_NichtLeereUePersonen;
+
+
+
+--------------------------------------------------------
+--  DDL for View VW_ALBVABSCHLUSSKRITERIUM
+--------------------------------------------------------
+
+  CREATE OR REPLACE FORCE VIEW "ISOS"."VW_ALBVABSCHLUSSKRITERIUM" ("SH_DOSSIER_ID", "B_BEZUG_STICHTAG", "DAT_ERSTE_AUSZAHLUNG", "DAT_LETZTE_ZAHLUNG", "VERSION") AS 
+  SELECT     s.sh_dossier_id, NVL(MIN(nlp.b_bezug_stichtag), - 9) AS b_bezug_stichtag,
+           NVL(MIN(nlp.dat_erste_auszahlung), TO_DATE('09.01.9999', 'DD.MM.YYYY')) AS dat_erste_auszahlung,
+           NVL(MAX(nlp.dat_letzte_zahlung), TO_DATE('09.01.9999', 'DD.MM.YYYY')) AS dat_letzte_zahlung,
+           s.version
+FROM       sh_dossier s
+INNER JOIN
+v_sh_leistungstyp la ON (la.sh_leistungstyp_id = s.sh_leistungstyp_id)
+LEFT OUTER JOIN
+VW_NichtLeerePersonen nlp ON (s.sh_dossier_id = nlp.sh_dossier_id)
+WHERE     (la.sh_leistungsfilter_id = 4)
+GROUP BY s.sh_dossier_id, s.version ;
+
+
+
+--------------------------------------------------------
+--  DDL for View VW_WBSL_WSH_DOSSIER
+--------------------------------------------------------
+
+  CREATE OR REPLACE FORCE VIEW "ISOS"."VW_WBSL_WSH_DOSSIER" ("B_AKTIV_WBSL", "B_AKTIV", "SH_DOSSIER_ID", "VERSION") AS 
+  SELECT lk.b_aktiv_wbsl, lk.b_aktiv, sh_dossier.sh_dossier_id, sh_dossier.version
+FROM   v_sh_leistungsklasse lk
+INNER JOIN
+v_sh_leistungstyp la ON lk.sh_leistungsklasse_id = la.sh_leistungsklasse_id
+INNER JOIN
+sh_dossier ON la.sh_leistungstyp_id = sh_dossier.sh_leistungstyp_id;
+
+
+
+--------------------------------------------------------
+--  DDL for View VW_WOHNSITUATION_AKTIV
+--------------------------------------------------------
+
+  CREATE OR REPLACE FORCE VIEW "ISOS"."VW_WOHNSITUATION_AKTIV" ("SH_DOSSIER_ID", "SH_WOHNSITUATION_ID", "VERSION") AS 
+  SELECT sh_dossier.sh_dossier_id,
+    v_sh_wohnsituation.sh_wohnsituation_id,
+    sh_dossier.version
+  FROM v_sh_wohnsituation
+  INNER JOIN v_lArtengruppe_sh_LArt
+  ON v_sh_wohnsituation.sh_leistungsgruppe_id = v_lArtengruppe_sh_LArt.leistungsartengruppe_id
+  INNER JOIN sh_dossier
+  ON v_lArtengruppe_sh_LArt.sh_leistungsart_id = sh_dossier.sh_leistungstyp_id;
+  
+  
+  
+ --------------------------------------------------------
+--  DDL for View VW_SH_EINKOMMENSART_AKTIV
+--------------------------------------------------------
+
+  CREATE OR REPLACE FORCE VIEW "ISOS"."VW_SH_EINKOMMENSART_AKTIV" ("SH_DOSSIER_ID", "SH_EINKOMMENSART_ID", "VERSION") AS 
+  SELECT sh_dossier.sh_dossier_id,
+    v_sh_einkommensart.sh_einkommensart_id,
+    sh_dossier.version
+  FROM v_sh_einkommensart
+  INNER JOIN v_lartengruppe_sh_lart
+  ON v_sh_einkommensart.sh_leistungsgruppe_id = v_lartengruppe_sh_lart.leistungsartengruppe_id
+  INNER JOIN sh_dossier
+  ON v_lartengruppe_sh_lart.sh_leistungsart_id = sh_dossier.sh_leistungstyp_id;
+ 
+  
+
+
+
+
+
 --------------------------------------------------------------------------------
 
 
